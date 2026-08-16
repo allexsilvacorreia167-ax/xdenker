@@ -1,0 +1,10 @@
+Coloque os arquivos com estes nomes exatos em client/public/:
+
+  logo.png    → logo em PNG
+  banner.jpg  → banner em JPG
+
+O código carrega:
+  /logo.png   (Header + Admin)
+  /banner.jpg (Home)
+
+Se os arquivos estiverem como logo.png.png ou banner.png.jpg, renomeie para logo.png e banner.jpg.
