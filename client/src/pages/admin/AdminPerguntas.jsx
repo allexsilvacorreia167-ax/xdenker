@@ -1,3 +1,4 @@
+import { apiFetch } from '../../api';
 import { useEffect, useState } from 'react';
 
 export default function AdminPerguntas() {
@@ -5,7 +6,7 @@ export default function AdminPerguntas() {
   const [msg, setMsg] = useState('');
 
   const load = () => {
-    fetch('/api/admin/questions')
+    apiFetch('/api/admin/questions')
       .then((r) => r.json())
       .then((d) => setQuestions(d.questions || []));
   };
@@ -30,7 +31,7 @@ export default function AdminPerguntas() {
   };
 
   const save = async () => {
-    const res = await fetch('/api/admin/questions', {
+    const res = await apiFetch('/api/admin/questions', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ questions }),

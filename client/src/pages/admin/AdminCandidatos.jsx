@@ -1,3 +1,4 @@
+import { apiFetch } from '../../api';
 import { useEffect, useState } from 'react';
 
 const emptyPres = { name: '', party: 'PT', number: '', active: true };
@@ -13,13 +14,13 @@ export default function AdminCandidatos() {
   const [msg, setMsg] = useState('');
 
   const load = () => {
-    fetch('/api/admin/candidates')
+    apiFetch('/api/admin/candidates')
       .then((r) => r.json())
       .then((d) => {
         setPresident(d.president || []);
         setGovernor(d.governor || {});
       });
-    fetch('/api/admin/spectrum')
+    apiFetch('/api/admin/spectrum')
       .then((r) => r.json())
       .then((d) => setParties(d.parties || []));
   };
@@ -50,7 +51,7 @@ export default function AdminCandidatos() {
   const saveGovernor = async (e) => {
     e.preventDefault();
     const { stateUF, ...rest } = formGov;
-    await fetch('/api/admin/candidates', {
+    await apiFetch('/api/admin/candidates', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...rest, position: 'governador', stateUF }),
@@ -63,7 +64,7 @@ export default function AdminCandidatos() {
   const remove = async (id, position, stateUF) => {
     if (!confirm('Remover candidato?')) return;
     const q = position === 'governador' ? `?position=governador&stateUF=${stateUF}` : '';
-    await fetch(`/api/admin/candidates/${id}${q}`, { method: 'DELETE' });
+    await apiFetch(`/api/admin/candidates/${id}${q}`, { method: 'DELETE' });
     load();
   };
 
@@ -94,11 +95,11 @@ export default function AdminCandidatos() {
             onClick={async () => {
               setMsg('Consultando TSE (Presidente)...');
               try {
-                const res = await fetch('/api/tse/candidatos?year=2022&uf=BR&cargo=presidente');
+                const res = await apiFetch('/api/tse/candidatos?year=2022&uf=BR&cargo=presidente');
                 const data = await res.json();
                 const list = data.candidates || [];
                 for (const c of list.slice(0, 30)) {
-                  await fetch('/api/admin/candidates', {
+                  await apiFetch('/api/admin/candidates', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
@@ -126,11 +127,11 @@ export default function AdminCandidatos() {
             onClick={async () => {
               setMsg('Consultando TSE (Governador CE)...');
               try {
-                const res = await fetch('/api/tse/candidatos?year=2022&uf=CE&cargo=governador');
+                const res = await apiFetch('/api/tse/candidatos?year=2022&uf=CE&cargo=governador');
                 const data = await res.json();
                 const list = data.candidates || [];
                 for (const c of list.slice(0, 30)) {
-                  await fetch('/api/admin/candidates', {
+                  await apiFetch('/api/admin/candidates', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

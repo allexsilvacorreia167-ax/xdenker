@@ -1,3 +1,4 @@
+import { apiFetch } from '../../api';
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Users, HelpCircle, Compass, TrendingUp } from 'lucide-react';
@@ -6,7 +7,7 @@ export default function AdminDashboard() {
   const [snap, setSnap] = useState(null);
 
   useEffect(() => {
-    fetch('/api/admin/dashboard')
+    apiFetch('/api/admin/dashboard')
       .then((r) => r.json())
       .then(setSnap)
       .catch(console.error);

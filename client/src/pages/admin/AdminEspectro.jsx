@@ -1,3 +1,4 @@
+import { apiFetch } from '../../api';
 import { useEffect, useState } from 'react';
 
 const SPECTRUM_COLORS = {
@@ -16,7 +17,7 @@ export default function AdminEspectro() {
   const [filter, setFilter] = useState('');
 
   const load = () => {
-    fetch('/api/admin/spectrum')
+    apiFetch('/api/admin/spectrum')
       .then((r) => r.json())
       .then((d) => {
         setParties(d.parties || []);
@@ -32,7 +33,7 @@ export default function AdminEspectro() {
   };
 
   const save = async () => {
-    const res = await fetch('/api/admin/spectrum', {
+    const res = await apiFetch('/api/admin/spectrum', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ spectrum }),
@@ -110,9 +111,8 @@ export default function AdminEspectro() {
                 <td className="px-4 py-2.5 text-slate-600">{p.nome}</td>
                 <td className="px-4 py-2.5">
                   <select
-                    className={`border rounded-lg px-3 py-1.5 text-sm font-medium ${
-                      SPECTRUM_COLORS[spectrum[p.sigla] || p.spectrum] || ''
-                    }`}
+                    className={`border rounded-lg px-3 py-1.5 text-sm font-medium ${SPECTRUM_COLORS[spectrum[p.sigla] || p.spectrum] || ''
+                      }`}
                     value={spectrum[p.sigla] || p.spectrum || 'Centro'}
                     onChange={(e) => setPartySpectrum(p.sigla, e.target.value)}
                   >
