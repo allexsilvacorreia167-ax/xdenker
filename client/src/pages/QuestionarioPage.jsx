@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
 import TseAutocomplete from '../components/TseAutocomplete';
+import { apiFetch } from '../api';
 
 const SCALE = ['Ruim', 'Médio', 'Bom', 'Excelente'];
 const SCALE_COLORS = {
@@ -38,7 +39,7 @@ export default function QuestionarioPage() {
       navigate('/');
       return;
     }
-    fetch('/api/research/start', {
+    apiFetch('/api/research/start', {
       method: 'POST',
       headers: {
         Authorization: 'Bearer temp',
@@ -76,7 +77,7 @@ export default function QuestionarioPage() {
         answer,
       }));
 
-      const res = await fetch('/api/research/calculate', {
+      const res = await apiFetch('/api/research/calculate', {
         method: 'POST',
         headers: {
           Authorization: 'Bearer temp',
@@ -202,11 +203,10 @@ export default function QuestionarioPage() {
                         onClick={() =>
                           setInstitutional((prev) => ({ ...prev, [q.id]: val }))
                         }
-                        className={`flex-1 py-2.5 rounded-lg text-sm font-medium border transition-colors ${
-                          institutional[q.id] === val
-                            ? 'bg-slate-800 text-white border-slate-800'
-                            : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
-                        }`}
+                        className={`flex-1 py-2.5 rounded-lg text-sm font-medium border transition-colors ${institutional[q.id] === val
+                          ? 'bg-slate-800 text-white border-slate-800'
+                          : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'
+                          }`}
                       >
                         {val ? '✓ Sim' : '✗ Não'}
                       </button>
@@ -252,11 +252,10 @@ export default function QuestionarioPage() {
                         onClick={() =>
                           setSectors((prev) => ({ ...prev, [s.key]: label }))
                         }
-                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
-                          sectors[s.key] === label
-                            ? SCALE_COLORS[label]
-                            : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                        }`}
+                        className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${sectors[s.key] === label
+                          ? SCALE_COLORS[label]
+                          : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                          }`}
                       >
                         {label}
                       </button>
@@ -305,20 +304,18 @@ export default function QuestionarioPage() {
                   <button
                     key={c.id}
                     onClick={() => setPresidentId(c.id)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-colors ${
-                      presidentId === c.id
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-slate-200 hover:bg-slate-50'
-                    }`}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-colors ${presidentId === c.id
+                      ? 'border-blue-500 bg-blue-50'
+                      : 'border-slate-200 hover:bg-slate-50'
+                      }`}
                   >
                     <div>
                       <p className="font-medium text-slate-800">{c.name}</p>
                       <p className="text-xs text-slate-500">{c.party}</p>
                     </div>
                     <span
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        presidentId === c.id ? 'border-blue-500' : 'border-slate-300'
-                      }`}
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${presidentId === c.id ? 'border-blue-500' : 'border-slate-300'
+                        }`}
                     >
                       {presidentId === c.id && (
                         <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
@@ -338,20 +335,18 @@ export default function QuestionarioPage() {
                   <button
                     key={c.id}
                     onClick={() => setGovernorId(c.id)}
-                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-colors ${
-                      governorId === c.id
-                        ? 'border-green-500 bg-green-50'
-                        : 'border-slate-200 hover:bg-slate-50'
-                    }`}
+                    className={`w-full flex items-center justify-between px-4 py-3 rounded-xl border text-left transition-colors ${governorId === c.id
+                      ? 'border-green-500 bg-green-50'
+                      : 'border-slate-200 hover:bg-slate-50'
+                      }`}
                   >
                     <div>
                       <p className="font-medium text-slate-800">{c.name}</p>
                       <p className="text-xs text-slate-500">{c.party}</p>
                     </div>
                     <span
-                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${
-                        governorId === c.id ? 'border-green-500' : 'border-slate-300'
-                      }`}
+                      className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${governorId === c.id ? 'border-green-500' : 'border-slate-300'
+                        }`}
                     >
                       {governorId === c.id && (
                         <span className="w-2.5 h-2.5 rounded-full bg-green-500" />

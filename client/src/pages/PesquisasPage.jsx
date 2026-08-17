@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { apiFetch } from '../api';
 
 const BAR_COLORS = [
   '#1e293b',
@@ -67,7 +68,7 @@ export default function PesquisasPage() {
 
   const load = async () => {
     try {
-      const res = await fetch('/api/pesquisas');
+      const res = await apiFetch('/api/pesquisas');
       const json = await res.json();
       setData(json);
     } catch (e) {
