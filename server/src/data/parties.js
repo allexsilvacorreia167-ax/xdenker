@@ -36,6 +36,7 @@ export const ALL_PARTIES = [
   { sigla: 'AGIR', nome: 'Agir' },
   { sigla: 'MOBILIZA', nome: 'Mobiliza' },
   { sigla: 'PRD', nome: 'Partido Renovação Democrática' },
+  { sigla: 'MISSÃO', nome: 'Partido Missão' },
 ];
 
 export const SPECTRUM_OPTIONS = [
@@ -80,4 +81,5 @@ export const DEFAULT_SPECTRUM = {
   AGIR: 'Centro',
   MOBILIZA: 'Centro',
   PRD: 'Centro-Direita',
+  MISSÃO: 'Direita',
 };
