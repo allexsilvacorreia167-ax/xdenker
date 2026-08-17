@@ -1,3 +1,4 @@
+import { apiFetch } from '../api';
 import { useState, useEffect, useRef } from 'react';
 
 /**
@@ -39,7 +40,7 @@ export default function TseAutocomplete({
       setLoading(true);
       try {
         const params = new URLSearchParams({ q: query, uf, cargo, year, limit: 15 });
-        const res = await fetch(`/api/tse/buscar?${params}`);
+        const res = await apiFetch(`/api/tse/buscar?${params}`);
         const data = await res.json();
         setResults(data.candidates || []);
         setSource(data.source);

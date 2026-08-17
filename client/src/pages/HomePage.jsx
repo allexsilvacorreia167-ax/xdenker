@@ -1,3 +1,4 @@
+import { apiFetch } from '../api';
 import { useAuth } from '../hooks/useAuth';
 import { CheckCircle2, Play } from 'lucide-react';
 import { useState, useEffect } from 'react';
@@ -72,12 +73,12 @@ export default function HomePage() {
 
   const fetchHomeData = async () => {
     try {
-      const res = await fetch('/api/');
+      const res = await apiFetch('/api/');
       const json = await res.json();
       setData(json);
 
       if (isAuthenticated && userId) {
-        const statusRes = await fetch('/api/research/status', {
+        const statusRes = await apiFetch('/api/research/status', {
           headers: {
             Authorization: 'Bearer temp',
             'X-User-Id': userId,

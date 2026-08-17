@@ -1,3 +1,4 @@
+import { apiFetch } from '../api';
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { X, Lock } from 'lucide-react';
@@ -15,7 +16,7 @@ export default function LoginModal({ step, setStep, credentials, setCredentials,
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await apiFetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(credentials),
@@ -39,7 +40,7 @@ export default function LoginModal({ step, setStep, credentials, setCredentials,
     setLoading(true);
 
     try {
-      const res = await fetch('/api/auth/verify', {
+      const res = await apiFetch('/api/auth/verify', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
