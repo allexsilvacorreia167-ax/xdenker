@@ -16,17 +16,27 @@ import {
 
 export const startQuestionnaire = async (req, res) => {
   try {
-    const userId = req.user?.id || 'anonymous';
-    if (hasUserVoted(userId)) {
-      return res.status(400).json({ error: 'Você já participou desta pesquisa', hasCompleted: true });
+    const userId = req.user?.id || req.headers['x-user-id'] || 'anonymous';
+    if (await hasUserVoted(userId)) {
+      return res.status(400).json({
+        error: 'Você já participou desta pesquisa',
+        hasCompleted: true,
+      });
     }
+
+    // UF enviado pelo front depois que o usuário escolhe o estado
+    const stateUF = (req.body?.stateUF || req.query?.uf || 'CE')
+      .toString()
+      .toUpperCase()
+      .slice(0, 2);
 
     const questions = getInstitutionalQuestions(true);
     const presidents = getPresidentCandidates(true);
-    const governors = getGovernorCandidates('CE', true);
+    const governors = getGovernorCandidates(stateUF, true);
 
     res.json({
       message: 'Questionário iniciado',
+      stateUF,
       stages: [
         { number: 1, title: 'Competência Institucional', type: 'true_false' },
         { number: 2, title: 'Percepção Social', type: 'scale' },
@@ -80,9 +90,9 @@ export const getQuestionnaireStatus = async (req, res) => {
   try {
     const userId = req.user?.id || 'anonymous';
     res.json({
-      hasStarted: hasUserVoted(userId),
+      hasStarted: await hasUserVoted(userId),
       currentStage: null,
-      hasCompleted: hasUserVoted(userId),
+      hasCompleted: await hasUserVoted(userId),
     });
   } catch (error) {
     res.status(500).json({ error: 'Erro ao buscar status' });
@@ -108,7 +118,7 @@ export const calculateCoherence = async (req, res) => {
     const userId = req.user?.id || `user-${Date.now()}`;
     const fullName = req.user?.fullName || 'Participante';
 
-    if (hasUserVoted(userId)) {
+    if (await hasUserVoted(userId)) {
       return res.status(400).json({ error: 'Você já participou desta pesquisa' });
     }
 
@@ -154,7 +164,7 @@ export const calculateCoherence = async (req, res) => {
     if (coherenceScore >= 70) label = 'Eleitor Altamente Consciente e Coerente';
     else if (coherenceScore >= 40) label = 'Eleitor Moderadamente Consciente';
 
-    const result = registerSurveyResult({
+    const result = await registerSurveyResult({
       userId, fullName,
       institutionalAnswers: evaluated,
       sectorAnswers,
@@ -163,7 +173,7 @@ export const calculateCoherence = async (req, res) => {
 
     if (!result.ok) return res.status(400).json({ error: result.error });
 
-    const live = getAggregatedResults();
+    const live = await getAggregatedResults();
 
     res.json({
       score: coherenceScore,
