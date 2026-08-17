@@ -4,6 +4,11 @@ import { CheckCircle2, Play } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+const UFS_BR = [
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
+  'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+];
+
 const BAR_COLORS = [
   'bg-slate-800',
   'bg-amber-500',
@@ -29,13 +34,10 @@ function CandidateBars({ candidates, emptyLabel }) {
     <div>
       <div className="flex items-end justify-center gap-4 md:gap-6 h-40 px-2">
         {candidates.map((c, i) => {
-          // altura em px (máx 140px) proporcional ao %
           const h = hasVotes ? Math.max(8, Math.round((c.percent / maxPercent) * 140)) : 8;
           return (
             <div key={c.id} className="flex flex-col items-center w-14 md:w-16">
-              <span className="text-sm font-bold text-slate-700 mb-1">
-                {c.percent}%
-              </span>
+              <span className="text-sm font-bold text-slate-700 mb-1">{c.percent}%</span>
               <div
                 className={`w-10 md:w-12 ${BAR_COLORS[i % BAR_COLORS.length]} rounded-t-md transition-all duration-500`}
                 style={{ height: `${h}px` }}
@@ -68,12 +70,15 @@ export default function HomePage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hasVoted, setHasVoted] = useState(false);
+  const [selectedUF, setSelectedUF] = useState(
+    () => localStorage.getItem('xdenker_uf') || 'CE'
+  );
 
   const userId = user?.userId || user?.id;
 
   const fetchHomeData = async () => {
     try {
-      const res = await apiFetch('/api/');
+      const res = await apiFetch(`/api/?uf=${selectedUF || 'CE'}`);
       const json = await res.json();
       setData(json);
 
@@ -101,7 +106,7 @@ export default function HomePage() {
     fetchHomeData();
     const interval = setInterval(fetchHomeData, 10000);
     return () => clearInterval(interval);
-  }, [isAuthenticated, userId]);
+  }, [isAuthenticated, userId, selectedUF]);
 
   const handleStartQuestionnaire = () => {
     if (!isAuthenticated) {
@@ -112,6 +117,11 @@ export default function HomePage() {
       alert('Você já participou desta pesquisa com este usuário.');
       return;
     }
+    if (!selectedUF) {
+      alert('Selecione o seu estado (UF) antes de iniciar.');
+      return;
+    }
+    localStorage.setItem('xdenker_uf', selectedUF);
     navigate('/questionario');
   };
 
@@ -135,7 +145,6 @@ export default function HomePage() {
         </h1>
       </div>
 
-      {/* Banner — só na home */}
       <div className="px-4 md:px-8 mb-6 max-w-5xl mx-auto">
         <div className="rounded-2xl overflow-hidden shadow-md">
           <img
@@ -153,26 +162,21 @@ export default function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
             <div>
               <p className="text-sm font-semibold text-slate-500 mb-3 text-center">Presidente</p>
-              <CandidateBars
-                candidates={president}
-                emptyLabel="Aguardando primeiros votos"
-              />
+              <CandidateBars candidates={president} emptyLabel="Aguardando primeiros votos" />
             </div>
 
             <div>
-              <p className="text-sm font-semibold text-slate-500 mb-3 text-center">Governador</p>
-              <CandidateBars
-                candidates={governor}
-                emptyLabel="Aguardando primeiros votos"
-              />
+              <p className="text-sm font-semibold text-slate-500 mb-3 text-center">
+                Governador ({selectedUF})
+              </p>
+              <CandidateBars candidates={governor} emptyLabel="Aguardando primeiros votos" />
             </div>
 
             <div className="flex flex-col items-center justify-center text-center border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-4">
               <img src="/logo.png" alt="XDENKER" className="h-10 w-auto object-contain mb-3" />
               <p className="text-xs font-semibold text-slate-500 mb-1">Metodologia</p>
               <p className="text-sm text-slate-700">
-                Respondentes:{' '}
-                <strong>{respondents.toLocaleString('pt-BR')}</strong>
+                Respondentes: <strong>{respondents.toLocaleString('pt-BR')}</strong>
               </p>
               <p className="text-xs text-slate-400 mt-1">
                 {respondents > 0
@@ -184,7 +188,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Participar */}
+      {/* Participar + escolha de UF */}
       <div className="px-4 md:px-8 max-w-5xl mx-auto">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6 flex flex-col md:flex-row md:items-center gap-4 justify-between">
           <div>
@@ -201,9 +205,25 @@ export default function HomePage() {
             <span className="text-xs border border-slate-200 rounded-lg px-3 py-1.5 text-slate-600">
               1º Turno
             </span>
-            <span className="text-xs border border-slate-200 rounded-lg px-3 py-1.5 text-slate-600">
-              CE
-            </span>
+
+            <label className="flex items-center gap-2 text-xs text-slate-600">
+              <span className="font-medium">Seu estado</span>
+              <select
+                value={selectedUF}
+                onChange={(e) => {
+                  const uf = e.target.value;
+                  setSelectedUF(uf);
+                  localStorage.setItem('xdenker_uf', uf);
+                }}
+                className="border-2 border-amber-400 rounded-lg px-3 py-2 text-sm font-semibold bg-white text-slate-800 min-w-[4.5rem]"
+              >
+                {UFS_BR.map((uf) => (
+                  <option key={uf} value={uf}>
+                    {uf}
+                  </option>
+                ))}
+              </select>
+            </label>
 
             {hasVoted ? (
               <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-4 py-2.5 text-sm font-medium">
