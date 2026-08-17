@@ -36,9 +36,8 @@ export default function AdminCandidatos() {
       ? `/api/admin/candidates/${editingPres}`
       : '/api/admin/candidates';
     const method = editingPres ? 'PUT' : 'POST';
-    const res = await fetch(url, {
+    const res = await apiFetch(url, {
       method,
-      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     });
     const data = await res.json();
