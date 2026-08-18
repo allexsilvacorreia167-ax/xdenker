@@ -5,16 +5,28 @@ export const getHomeData = async (req, res) => {
     const results = getAggregatedResults();
     const uf = (req.query.uf || 'CE').toUpperCase();
 
-    // LOG PARA DEBUG NO TERMINAL DO SERVIDOR
-    console.log("ESTRUTURA DE RESULTS.GOVERNOR:", JSON.stringify(results.governor, null, 2));
-    console.log("UF BUSCADA:", uf);
-
+    // Busca inteligente que cobre todos os formatos possíveis de armazenamento
     let governadorList = [];
-    if (results.governor) {
-      if (Array.isArray(results.governor)) {
-        governadorList = results.governor.filter(c => (c.uf || '').toUpperCase() === uf);
-      } else if (typeof results.governor === 'object') {
-        governadorList = results.governor[uf] || results.governor[uf.toLowerCase()] || [];
+    const govData = results.governor;
+
+    if (govData) {
+      if (Array.isArray(govData)) {
+        // Se estiver em formato de array único, filtra pela UF do candidato
+        governadorList = govData.filter(c => (c.uf || '').toUpperCase() === uf);
+      } else if (typeof govData === 'object') {
+        // Se estiver em formato de objeto/dicionário por estado (ex: { CE: [...], SP: [...] })
+        // Tenta achar tanto em maiúsculo, minúsculo, ou busca nas chaves do objeto
+        const matchingKey = Object.keys(govData).find(key => key.toUpperCase() === uf);
+        if (matchingKey) {
+          governadorList = govData[matchingKey];
+        } else if (govData[uf]) {
+          governadorList = govData[uf];
+        } else if (govData[uf.toLowerCase()]) {
+          governadorList = govData[uf.toLowerCase()];
+        } else {
+          // Se não achar a chave exata da UF, pega a primeira disponível ou array vazio
+          governadorList = [];
+        }
       }
     }
 
