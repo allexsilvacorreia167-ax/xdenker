@@ -63,16 +63,12 @@ function HorizontalBars({ items, emptyText }) {
 }
 
 export default function PesquisasPage() {
-  const selectedUF = localStorage.getItem('xdenker_uf') || 'CE';
-  const selectedTurno = localStorage.getItem('xdenker_turno') || '1';
-
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
 
   const load = async () => {
     try {
-      // Passando UF e Turno dinâmicos na busca das pesquisas
-      const res = await apiFetch(`/api/pesquisas?uf=${selectedUF}&turno=${selectedTurno}`);
+      const res = await apiFetch('/api/pesquisas');
       const json = await res.json();
       setData(json);
     } catch (e) {
@@ -86,7 +82,7 @@ export default function PesquisasPage() {
     load();
     const id = setInterval(load, 10000);
     return () => clearInterval(id);
-  }, [selectedUF, selectedTurno]);
+  }, []);
 
   if (loading) {
     return (
@@ -98,14 +94,8 @@ export default function PesquisasPage() {
 
   const total = data?.totalParticipants ?? 0;
   const president = data?.intentionLines?.presidente || [];
-
-  // Captura os dados do governador especificamente da UF escolhida (ex: SP ou CE)
-  const govData = data?.intentionLines?.governador;
-  const governor = (govData && typeof govData === 'object' && !Array.isArray(govData))
-    ? (govData[selectedUF] || [])
-    : (govData || []);
+  const governor = data?.intentionLines?.governador?.CE || data?.intentionLines?.governador || [];
   const govList = Array.isArray(governor) ? governor : [];
-
   const knowledge = data?.politicalKnowledgeIndex ?? 0;
   const sectors = data?.sectorEvaluation || {};
 
@@ -123,17 +113,17 @@ export default function PesquisasPage() {
           <div>
             <h1 className="text-xl font-bold text-slate-800">Pesquisas</h1>
             <p className="text-sm text-slate-500">
-              Resultados em tempo real ({selectedUF} - {selectedTurno}º Turno) ·{' '}
+              Resultados em tempo real ·{' '}
               <strong>{total.toLocaleString('pt-BR')}</strong> participante
               {total !== 1 ? 's' : ''}
             </p>
           </div>
         </div>
 
-        {/* Presidente — nacional */}
+        {/* Presidente — uma barra por candidato */}
         <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
           <h2 className="font-semibold text-slate-800 mb-4">
-            Intenção de Voto — Presidente (Nacional)
+            Intenção de Voto — Presidente
           </h2>
           <HorizontalBars
             items={president}
@@ -141,14 +131,14 @@ export default function PesquisasPage() {
           />
         </section>
 
-        {/* Governador — dinâmico conforme a UF selecionada */}
+        {/* Governador — uma barra por candidato */}
         <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
           <h2 className="font-semibold text-slate-800 mb-4">
-            Intenção de Voto — Governador ({selectedUF})
+            Intenção de Voto — Governador (CE)
           </h2>
           <HorizontalBars
             items={govList}
-            emptyText={`Nenhum candidato a governador cadastrado para ${selectedUF} no ADM`}
+            emptyText="Nenhum candidato a governador cadastrado no ADM"
           />
         </section>
 
@@ -170,10 +160,10 @@ export default function PesquisasPage() {
           </p>
         </section>
 
-        {/* Áreas prioritárias */}
+        {/* Áreas prioritárias — em português */}
         <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
           <h2 className="font-semibold text-slate-800 mb-1">
-            Avaliação das Áreas Prioritárias ({selectedUF})
+            Avaliação das Áreas Prioritárias
           </h2>
           <p className="text-xs text-slate-400 mb-4">
             Média das respostas (Ruim=25 · Médio=50 · Bom=75 · Excelente=100)
@@ -186,9 +176,9 @@ export default function PesquisasPage() {
 
         {total === 0 && (
           <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800">
-            <strong>Ainda não há pesquisas registradas para {selectedUF}.</strong> Faça login com
-            e-mails diferentes, complete o questionário escolhendo {selectedUF} e os percentuais serão
-            calculados automaticamente.
+            <strong>Ainda não há pesquisas registradas.</strong> Faça login com
+            e-mails diferentes, complete o questionário e os percentuais serão
+            calculados automaticamente (ex.: 6 em 10 votos = 60%).
           </div>
         )}
       </div>

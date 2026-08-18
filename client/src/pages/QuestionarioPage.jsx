@@ -12,11 +12,9 @@ const SCALE_COLORS = {
   Excelente: 'bg-green-200 text-green-900',
 };
 
-const UFS_BR = [
-  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'
-];
-
 export default function QuestionarioPage() {
+  const selectedUF = localStorage.getItem('xdenker_uf') || 'CE';
+  const selectedTurno = localStorage.getItem('xdenker_turno') || '1';
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [stage, setStage] = useState(1);
@@ -31,8 +29,6 @@ export default function QuestionarioPage() {
   const [senador, setSenador] = useState(null);
   const [result, setResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
-  const [stateUF, setStateUF] = useState(() => localStorage.getItem('xdenker_uf') || '');
-  const [ufReady, setUfReady] = useState(() => Boolean(localStorage.getItem('xdenker_uf')));
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -45,21 +41,14 @@ export default function QuestionarioPage() {
       navigate('/');
       return;
     }
-    // Só inicia a pesquisa depois que o UF foi escolhido
-    if (!ufReady || !stateUF) {
-      setLoading(false);
-      return;
-    }
-
-    setLoading(true);
-    apiFetch('/api/research/start', {
+    apiFetch(`/api/research/start?uf=${selectedUF}&turno=${selectedTurno}`, {
       method: 'POST',
       headers: {
         Authorization: 'Bearer temp',
         'X-User-Id': uid,
         'X-User-Name': user?.fullName || '',
+        'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ stateUF }),
     })
       .then(async (r) => {
         const data = await r.json();
@@ -69,7 +58,6 @@ export default function QuestionarioPage() {
           return;
         }
         setQuestions(data.questions);
-        setGovernorId(null);
         setLoading(false);
       })
       .catch(() => {
@@ -77,7 +65,7 @@ export default function QuestionarioPage() {
         setLoading(false);
         navigate('/');
       });
-  }, [isAuthenticated, navigate, ufReady, stateUF]);
+  }, [isAuthenticated, navigate, selectedUF, selectedTurno]);
 
   const handleFinish = async () => {
     if (!presidentId || !governorId) {
@@ -97,13 +85,15 @@ export default function QuestionarioPage() {
           Authorization: 'Bearer temp',
           'X-User-Id': user?.userId || user?.id || 'anon',
           'X-User-Name': user?.fullName || '',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           institutionalAnswers,
           sectorAnswers: sectors,
           presidentId,
           governorId,
-          stateUF,
+          stateUF: selectedUF,
+          turno: selectedTurno,
         }),
       });
       const data = await res.json();
@@ -116,46 +106,6 @@ export default function QuestionarioPage() {
       setSubmitting(false);
     }
   };
-
-
-  // Tela: escolher UF antes de iniciar
-  if (!ufReady) {
-    return (
-      <div className="min-h-[70vh] flex items-center justify-center p-4 bg-slate-50">
-        <div className="bg-white rounded-2xl shadow-lg p-6 sm:p-8 max-w-md w-full">
-          <h1 className="text-xl font-bold text-slate-800 mb-1">Seu estado</h1>
-          <p className="text-sm text-slate-500 mb-5">
-            Selecione a UF onde você vota. Os candidatos a <strong>Governador</strong> serão
-            filtrados por este estado.
-          </p>
-          <label className="block text-sm font-medium text-slate-700 mb-2">UF</label>
-          <select
-            className="w-full border border-slate-200 rounded-xl px-4 py-3 text-sm mb-5"
-            value={stateUF}
-            onChange={(e) => setStateUF(e.target.value)}
-          >
-            <option value="">Selecione...</option>
-            {UFS_BR.map((uf) => (
-              <option key={uf} value={uf}>{uf}</option>
-            ))}
-          </select>
-          <button
-            type="button"
-            disabled={!stateUF}
-            onClick={() => {
-              localStorage.setItem('xdenker_uf', stateUF);
-              setUfReady(true);
-              setLoading(true);
-            }}
-            className="w-full bg-slate-800 disabled:opacity-40 text-white font-medium py-3 rounded-xl"
-          >
-            Continuar para a pesquisa
-          </button>
-        </div>
-      </div>
-    );
-  }
-
 
   if (loading) {
     return (
@@ -192,10 +142,6 @@ export default function QuestionarioPage() {
             <div className="flex justify-between border-b border-slate-100 pb-2">
               <span className="text-slate-400 uppercase text-xs">Presidente</span>
               <span className="font-medium">{presName}</span>
-            </div>
-            <div className="flex justify-between border-b border-slate-100 pb-2">
-              <span className="text-slate-400 uppercase text-xs">Estado (UF)</span>
-              <span className="font-medium">{stateUF}</span>
             </div>
             <div className="flex justify-between border-b border-slate-100 pb-2">
               <span className="text-slate-400 uppercase text-xs">Governador</span>
@@ -349,7 +295,7 @@ export default function QuestionarioPage() {
           <div>
             <h1 className="text-xl font-bold text-slate-800 text-center mb-1">Sua Escolha</h1>
             <p className="text-sm text-slate-500 text-center mb-6">
-              Selecione seus candidatos para o 1º turno.
+              Selecione seus candidatos para o {selectedTurno}º turno.
             </p>
 
             <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm mb-4">
@@ -385,15 +331,10 @@ export default function QuestionarioPage() {
 
             <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm mb-6">
               <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                {`📍 Governador (${stateUF})`}
-                {!questions.candidates.governor?.length && (
-                  <p className="text-sm text-amber-600 mb-2">
-                    Nenhum governador cadastrado no ADM para {stateUF}. Peça ao administrador para adicionar.
-                  </p>
-                )}
+                📍 Governador ({selectedUF})
               </p>
               <div className="space-y-2">
-                {(questions.candidates.governor?.length ? questions.candidates.governor : []).map((c) => (
+                {questions.candidates.governor.map((c) => (
                   <button
                     key={c.id}
                     onClick={() => setGovernorId(c.id)}
@@ -425,7 +366,7 @@ export default function QuestionarioPage() {
               <TseAutocomplete
                 label="Deputado Federal"
                 cargo="deputado_federal"
-                uf={stateUF}
+                uf={selectedUF}
                 year={2022}
                 value={depFederal}
                 onChange={setDepFederal}
@@ -433,7 +374,7 @@ export default function QuestionarioPage() {
               <TseAutocomplete
                 label="Deputado Estadual"
                 cargo="deputado_estadual"
-                uf={stateUF}
+                uf={selectedUF}
                 year={2022}
                 value={depEstadual}
                 onChange={setDepEstadual}
@@ -441,7 +382,7 @@ export default function QuestionarioPage() {
               <TseAutocomplete
                 label="Senador"
                 cargo="senador"
-                uf={stateUF}
+                uf={selectedUF}
                 year={2022}
                 value={senador}
                 onChange={setSenador}

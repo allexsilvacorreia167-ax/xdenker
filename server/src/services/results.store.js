@@ -1,207 +1,286 @@
-import { apiFetch } from '../api';
-import { useEffect, useState } from 'react';
+/**
+ * Resultados da pesquisa
+ * - Prioridade: Supabase (survey_responses)
+ * - Fallback: memória (se Supabase offline)
+ */
 
-const BAR_COLORS = [
-  '#1e293b',
-  '#f59e0b',
-  '#2563eb',
-  '#059669',
-  '#f43f5e',
-  '#7c3aed',
-];
+import {
+  getPresidentCandidates,
+  getGovernorCandidates,
+  getAllGovernorUFs,
+  getSpectrumForParty,
+} from './admin.store.js';
+import { supabase, supabaseConfigured } from '../lib/supabase.js';
 
-const SECTOR_LABELS = {
-  seguranca: 'Segurança Pública',
-  saude: 'Saúde',
-  educacao: 'Educação',
-  economia: 'Economia e Emprego',
-  infraestrutura: 'Infraestrutura',
-  combateCorrupcao: 'Combate à Corrupção',
+const SCALE_MAP = {
+  Ruim: 25,
+  Médio: 50,
+  Bom: 75,
+  Excelente: 100,
 };
 
-function HorizontalBars({ items, emptyText }) {
-  if (!items?.length) {
-    return <p className="text-sm text-slate-400 py-4">{emptyText}</p>;
-  }
-  const hasVotes = items.some((c) => (c.votes || 0) > 0 || (c.percent || 0) > 0);
+const SECTOR_KEYS = [
+  'seguranca',
+  'saude',
+  'educacao',
+  'economia',
+  'infraestrutura',
+  'combateCorrupcao',
+];
 
-  return (
-    <div className="space-y-3">
-      {items.map((c, i) => (
-        <div key={c.id || c.key || i}>
-          <div className="flex justify-between text-sm mb-1">
-            <span className="font-medium text-slate-700">
-              {c.name || c.label}
-              {c.party ? ` (${c.party})` : ''}
-            </span>
-            <span className="font-bold text-slate-800">
-              {c.percent}%
-              {typeof c.votes === 'number' ? (
-                <span className="text-slate-400 font-normal text-xs ml-1">
-                  ({c.votes} voto{c.votes !== 1 ? 's' : ''})
-                </span>
-              ) : null}
-            </span>
-          </div>
-          <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className="h-full rounded-full transition-all duration-500"
-              style={{
-                width: `${Math.min(100, c.percent || 0)}%`,
-                backgroundColor: BAR_COLORS[i % BAR_COLORS.length],
-                minWidth: c.percent > 0 ? '4px' : '0',
-              }}
-            />
-          </div>
-        </div>
-      ))}
-      {!hasVotes && (
-        <p className="text-xs text-slate-400">Aguardando primeiras pesquisas — tudo em 0%</p>
-      )}
-    </div>
-  );
+/** Fallback em memória */
+const mem = {
+  completedSurveys: [],
+};
+
+function calcPercent(votes, total) {
+  if (!total || total <= 0) return 0;
+  return Math.round((votes / total) * 100);
 }
 
-const UFS_BR = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
+function aggregateFromRows(rows) {
+  const presidentVoteCounts = {};
+  const governorVoteCounts = {};
+  const sectorSum = Object.fromEntries(SECTOR_KEYS.map((k) => [k, 0]));
+  const sectorCount = Object.fromEntries(SECTOR_KEYS.map((k) => [k, 0]));
+  let knowledgeSum = 0;
 
-export default function PesquisasPage() {
-  const [selectedUF, setSelectedUF] = useState(() => localStorage.getItem('xdenker_uf') || 'CE');
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  const load = async () => {
-    try {
-      const res = await apiFetch(`/api/pesquisas?uf=${selectedUF || 'CE'}`);
-      const json = await res.json();
-      setData(json);
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
+  rows.forEach((r) => {
+    if (r.president_id) {
+      presidentVoteCounts[r.president_id] = (presidentVoteCounts[r.president_id] || 0) + 1;
     }
+    const uf = r.state_uf || 'CE';
+    if (r.governor_id) {
+      if (!governorVoteCounts[uf]) governorVoteCounts[uf] = {};
+      governorVoteCounts[uf][r.governor_id] =
+        (governorVoteCounts[uf][r.governor_id] || 0) + 1;
+    }
+    const sectors = r.sector_answers || {};
+    Object.entries(sectors).forEach(([key, label]) => {
+      if (sectorSum[key] === undefined) return;
+      sectorSum[key] += SCALE_MAP[label] ?? 50;
+      sectorCount[key] += 1;
+    });
+    knowledgeSum += r.knowledge_percent || 0;
+  });
+
+  const totalParticipants = rows.length;
+  const presCandidates = getPresidentCandidates(true);
+  const totalPresVotes = Object.values(presidentVoteCounts).reduce((s, v) => s + v, 0);
+
+  const president = presCandidates.map((c) => {
+    const votes = presidentVoteCounts[c.id] || 0;
+    return {
+      id: c.id,
+      name: c.name,
+      party: c.party,
+      number: c.number,
+      votes,
+      percent: calcPercent(votes, totalPresVotes),
+      spectrum: getSpectrumForParty(c.party),
+    };
+  });
+
+  const governorByState = {};
+  // Todas as UFs com candidatos no ADM + UFs que já receberam voto
+  const ufs = new Set([
+    ...getAllGovernorUFs(),
+    ...Object.keys(governorVoteCounts),
+  ]);
+  ufs.forEach((uf) => {
+    const candidates = getGovernorCandidates(uf, true);
+    const counts = governorVoteCounts[uf] || {};
+    const totalGovVotes = Object.values(counts).reduce((s, v) => s + v, 0);
+    governorByState[uf] = candidates.map((c) => {
+      const votes = counts[c.id] || 0;
+      return {
+        id: c.id,
+        name: c.name,
+        party: c.party,
+        number: c.number,
+        votes,
+        percent: calcPercent(votes, totalGovVotes),
+        spectrum: getSpectrumForParty(c.party),
+      };
+    });
+  });
+
+  const sectorScores = {};
+  SECTOR_KEYS.forEach((key) => {
+    const count = sectorCount[key];
+    sectorScores[key] = count > 0 ? Math.round(sectorSum[key] / count) : 0;
+  });
+
+  const knowledgeIndex =
+    totalParticipants > 0 ? Math.round(knowledgeSum / totalParticipants) : 0;
+
+  const recentSurveys = [...rows]
+    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+    .slice(0, 20)
+    .map((r) => ({
+      userId: r.user_id,
+      fullName: r.full_name,
+      presidentId: r.president_id,
+      governorId: r.governor_id,
+      stateUF: r.state_uf,
+      coherenceScore: r.coherence_score,
+      knowledgePercent: r.knowledge_percent,
+      at: r.created_at,
+    }));
+
+  return {
+    totalParticipants,
+    president,
+    governor: governorByState,
+    sectorEvaluation: sectorScores,
+    politicalKnowledgeIndex: knowledgeIndex,
+    recentSurveys,
+    source: supabaseConfigured ? 'supabase' : 'memory',
   };
+}
 
-  useEffect(() => {
-    load();
-    const id = setInterval(load, 10000);
-    return () => clearInterval(id);
-  }, [selectedUF]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-[40vh] text-slate-400">
-        Carregando resultados...
-      </div>
-    );
+async function fetchAllResponses() {
+  if (!supabaseConfigured || !supabase) {
+    return mem.completedSurveys.map((s) => ({
+      user_id: s.userId,
+      full_name: s.fullName,
+      president_id: s.presidentId,
+      governor_id: s.governorId,
+      state_uf: s.stateUF || 'CE',
+      sector_answers: s.sectorAnswers || {},
+      coherence_score: s.coherenceScore || 0,
+      knowledge_percent: s.knowledgePercent || 0,
+      created_at: s.at,
+    }));
   }
 
-  const total = data?.totalParticipants ?? 0;
-  const president = data?.intentionLines?.presidente || [];
-  const govMap = data?.intentionLines?.governador || {};
-  const governor = data?.intentionLines?.governadorUF || (data?.intentionLines?.governador?.[selectedUF]) || [];
-  const govList = Array.isArray(governor) ? governor : [];
-  const knowledge = data?.politicalKnowledgeIndex ?? 0;
-  const sectors = data?.sectorEvaluation || {};
+  const { data, error } = await supabase
+    .from('survey_responses')
+    .select('*')
+    .order('created_at', { ascending: false });
 
-  const sectorItems = Object.entries(SECTOR_LABELS).map(([key, label]) => ({
-    key,
-    label,
-    percent: sectors[key] ?? 0,
-  }));
+  if (error) {
+    console.error('[results] fetch survey_responses', error);
+    throw error;
+  }
+  return data || [];
+}
 
-  return (
-    <div className="bg-slate-50 min-h-screen pb-16">
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-6">
-          <img src="/logo.png" alt="XDENKER" className="h-9 w-auto object-contain" />
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">Pesquisas</h1>
-            <div className="flex items-center gap-2 mt-3 mb-2">
-              <span className="text-sm text-slate-600">UF da pesquisa:</span>
-              <select
-                value={selectedUF}
-                onChange={(e) => {
-                  const uf = e.target.value;
-                  setSelectedUF(uf);
-                  localStorage.setItem('xdenker_uf', uf);
-                }}
-                className="border-2 border-amber-400 rounded-lg px-3 py-1.5 text-sm font-semibold"
-              >
-                {UFS_BR.map((uf) => (
-                  <option key={uf} value={uf}>{uf}</option>
-                ))}
-              </select>
-            </div>
-            <p className="text-sm text-slate-500">
-              Resultados em tempo real ·{' '}
-              <strong>{total.toLocaleString('pt-BR')}</strong> participante
-              {total !== 1 ? 's' : ''}
-            </p>
-          </div>
-        </div>
+export async function registerSurveyResult(payload) {
+  const {
+    userId,
+    fullName,
+    institutionalAnswers = [],
+    sectorAnswers = {},
+    presidentId,
+    governorId,
+    stateUF = 'CE',
+    coherenceScore = 0,
+  } = payload;
 
-        {/* Presidente — uma barra por candidato */}
-        <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
-          <h2 className="font-semibold text-slate-800 mb-4">
-            Intenção de Voto — Presidente
-          </h2>
-          <HorizontalBars
-            items={president}
-            emptyText="Nenhum candidato a presidente cadastrado no ADM"
-          />
-        </section>
+  if (!userId) {
+    return { ok: false, error: 'userId obrigatório' };
+  }
 
-        {/* Governador — uma barra por candidato */}
-        <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
-          <h2 className="font-semibold text-slate-800 mb-4">
-            {`Intenção de Voto — Governador (${selectedUF})`}
-          </h2>
-          <HorizontalBars
-            items={govList}
-            emptyText="Nenhum candidato a governador cadastrado no ADM"
-          />
-        </section>
+  const correctCount = institutionalAnswers.filter((a) => a.isCorrect).length;
+  const knowledgePercent = institutionalAnswers.length
+    ? Math.round((correctCount / institutionalAnswers.length) * 100)
+    : 0;
 
-        {/* Conhecimento político */}
-        <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
-          <h2 className="font-semibold text-slate-800 mb-2">
-            Índice de Conhecimento Político
-          </h2>
-          <p className="text-3xl font-bold text-slate-800 mb-2">{knowledge}%</p>
-          <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-blue-600 rounded-full transition-all"
-              style={{ width: `${knowledge}%` }}
-            />
-          </div>
-          <p className="text-xs text-slate-400 mt-2">
-            Média de acertos nas perguntas de competência institucional
-            {total === 0 ? ' (sem pesquisas ainda)' : ''}
-          </p>
-        </section>
+  if (supabaseConfigured && supabase) {
+    // Já participou?
+    const { data: existing } = await supabase
+      .from('survey_responses')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
 
-        {/* Áreas prioritárias — em português */}
-        <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
-          <h2 className="font-semibold text-slate-800 mb-1">
-            Avaliação das Áreas Prioritárias
-          </h2>
-          <p className="text-xs text-slate-400 mb-4">
-            Média das respostas (Ruim=25 · Médio=50 · Bom=75 · Excelente=100)
-          </p>
-          <HorizontalBars
-            items={sectorItems}
-            emptyText="Sem avaliações ainda"
-          />
-        </section>
+    if (existing) {
+      return { ok: false, error: 'Usuário já participou' };
+    }
 
-        {total === 0 && (
-          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800">
-            <strong>Ainda não há pesquisas registradas.</strong> Faça login com
-            e-mails diferentes, complete o questionário e os percentuais serão
-            calculados automaticamente (ex.: 6 em 10 votos = 60%).
-          </div>
-        )}
-      </div>
-    </div>
-  );
+    const { error: insErr } = await supabase.from('survey_responses').insert([
+      {
+        user_id: userId,
+        full_name: fullName || 'Participante',
+        president_id: presidentId || null,
+        governor_id: governorId || null,
+        state_uf: stateUF,
+        institutional_answers: institutionalAnswers,
+        sector_answers: sectorAnswers,
+        coherence_score: coherenceScore,
+        knowledge_percent: knowledgePercent,
+      },
+    ]);
+
+    if (insErr) {
+      console.error('[results] insert', insErr);
+      return { ok: false, error: insErr.message };
+    }
+
+    await supabase
+      .from('app_users')
+      .update({ has_completed_survey: true })
+      .eq('id', userId);
+
+    const rows = await fetchAllResponses();
+    return { ok: true, totalParticipants: rows.length };
+  }
+
+  // Memória
+  if (mem.completedSurveys.some((s) => s.userId === userId)) {
+    return { ok: false, error: 'Usuário já participou' };
+  }
+
+  mem.completedSurveys.push({
+    userId,
+    fullName,
+    presidentId,
+    governorId,
+    stateUF,
+    coherenceScore,
+    knowledgePercent,
+    sectorAnswers,
+    institutionalAnswers,
+    at: new Date().toISOString(),
+  });
+
+  return {
+    ok: true,
+    totalParticipants: mem.completedSurveys.length,
+    warning: 'Salvo só em memória — configure Supabase no Render',
+  };
+}
+
+export async function getAggregatedResults() {
+  try {
+    const rows = await fetchAllResponses();
+    return aggregateFromRows(rows);
+  } catch (e) {
+    console.error('[results] aggregate', e);
+    return aggregateFromRows([]);
+  }
+}
+
+export async function hasUserVoted(userId) {
+  if (!userId) return false;
+
+  if (supabaseConfigured && supabase) {
+    const { data } = await supabase
+      .from('survey_responses')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+    return Boolean(data);
+  }
+
+  return mem.completedSurveys.some((s) => s.userId === userId);
+}
+
+export async function resetResults() {
+  if (supabaseConfigured && supabase) {
+    await supabase.from('survey_responses').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+  }
+  mem.completedSurveys = [];
+  return { ok: true };
 }
