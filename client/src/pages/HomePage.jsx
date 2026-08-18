@@ -121,7 +121,6 @@ export default function HomePage() {
       return;
     }
 
-    // EXATAMENTE AQUI: Salvamos a UF e o Turno escolhidos pelo usuário antes de ir para a próxima tela
     localStorage.setItem('xdenker_uf', selectedUF);
     localStorage.setItem('xdenker_turno', selectedTurno);
 
@@ -191,7 +190,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Participar + escolha de UF e Turno */}
       <div className="px-4 md:px-8 max-w-5xl mx-auto">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6 flex flex-col md:flex-row md:items-center gap-4 justify-between">
           <div>
