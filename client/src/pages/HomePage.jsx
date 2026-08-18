@@ -133,12 +133,14 @@ export default function HomePage() {
 
   const president = data?.summaryCharts?.presidente || [];
 
-  // Tratamento seguro para extrair o governador dependendo de como o backend responde
+  // Tratamento de debug visual direto na tela
   const govRaw = data?.summaryCharts?.governador;
+
+  // Vamos forçar a pegar a chave exata da UF selecionada se for um objeto, senão usa o array
   let governor = [];
   if (govRaw) {
     if (!Array.isArray(govRaw) && typeof govRaw === 'object') {
-      governor = govRaw[selectedUF] || govRaw['CE'] || [];
+      governor = govRaw[selectedUF] || [];
     } else if (Array.isArray(govRaw)) {
       governor = govRaw;
     }
