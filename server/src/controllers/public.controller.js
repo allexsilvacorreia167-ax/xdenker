@@ -4,8 +4,20 @@ export const getHomeData = async (req, res) => {
   try {
     const results = getAggregatedResults();
 
-    // Pega o UF enviado pela query string (ex: ?uf=SP), com fallback para 'CE'
+    // Pega o UF enviado pela URL (ex: ?uf=SP), padronizando em maiúsculo
     const uf = (req.query.uf || 'CE').toUpperCase();
+
+    // Normaliza os dados do governador dependendo de como o results.governor está estruturado
+    let governadorList = [];
+    if (results.governor) {
+      if (Array.isArray(results.governor)) {
+        // Se for um array único, filtra pela UF do candidato
+        governadorList = results.governor.filter(c => (c.uf || '').toUpperCase() === uf);
+      } else if (typeof results.governor === 'object') {
+        // Se for um objeto/dicionário separado por chaves de UF (ex: { CE: [...], SP: [...] })
+        governadorList = results.governor[uf] || results.governor[uf.toLowerCase()] || [];
+      }
+    }
 
     res.json({
       banner: {
@@ -13,12 +25,11 @@ export const getHomeData = async (req, res) => {
         image: '/banner.jpg',
       },
       summaryCharts: {
-        presidente: results.president,
-        // Agora busca dinamicamente usando a variável 'uf' recebida na requisição
-        governador: results.governor[uf] || results.governor['CE'] || [],
+        presidente: results.president || [],
+        governador: governadorList,
       },
       methodology: {
-        respondents: results.totalParticipants,
+        respondents: results.totalParticipants || 0,
         marginOfError: results.totalParticipants > 0 ? '±1.5%' : '—',
       },
       hasVoted: false,
