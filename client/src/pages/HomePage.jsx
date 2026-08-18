@@ -128,7 +128,13 @@ export default function HomePage() {
   };
 
   const president = data?.summaryCharts?.presidente || [];
-  const governor = data?.summaryCharts?.governador || [];
+
+  // Lógica de extração dinâmica corrigida:
+  const govRaw = data?.summaryCharts?.governador;
+  const governor = (govRaw && typeof govRaw === 'object' && !Array.isArray(govRaw))
+    ? (govRaw[selectedUF] || [])
+    : (Array.isArray(govRaw) ? govRaw : []);
+
   const respondents = data?.methodology?.respondents ?? 0;
 
   if (loading) {
