@@ -36,7 +36,7 @@ function CandidateBars({ candidates, emptyLabel }) {
         {candidates.map((c, i) => {
           const h = hasVotes ? Math.max(8, Math.round((c.percent / maxPercent) * 140)) : 8;
           return (
-            <div key={c.id} className="flex flex-col items-center w-14 md:w-16">
+            <div key={c.id || c.name} className="flex flex-col items-center w-14 md:w-16">
               <span className="text-sm font-bold text-slate-700 mb-1">{c.percent}%</span>
               <div
                 className={`w-10 md:w-12 ${BAR_COLORS[i % BAR_COLORS.length]} rounded-t-md transition-all duration-500`}
@@ -49,7 +49,7 @@ function CandidateBars({ candidates, emptyLabel }) {
       </div>
       <div className="flex flex-col items-center gap-1 mt-3 text-xs text-slate-600">
         {candidates.map((c, i) => (
-          <span key={c.id} className="flex items-center gap-1.5">
+          <span key={c.id || c.name} className="flex items-center gap-1.5">
             <span className={`w-2.5 h-2.5 rounded-sm ${BAR_COLORS[i % BAR_COLORS.length]}`} />
             {c.name}
             {c.party ? ` (${c.party})` : ''}: {c.percent}%
@@ -70,6 +70,7 @@ export default function HomePage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [hasVoted, setHasVoted] = useState(false);
+
   const [selectedUF, setSelectedUF] = useState(
     () => localStorage.getItem('xdenker_uf') || 'CE'
   );
@@ -79,9 +80,12 @@ export default function HomePage() {
 
   const userId = user?.userId || user?.id;
 
-  const fetchHomeData = async () => {
+  const fetchHomeData = async (ufToFetch, turnoToFetch) => {
     try {
-      const res = await apiFetch(`/api/?uf=${selectedUF || 'CE'}&turno=${selectedTurno}`);
+      const uf = ufToFetch || selectedUF;
+      const turno = turnoToFetch || selectedTurno;
+
+      const res = await apiFetch(`/api/?uf=${uf}&turno=${turno}`);
       const json = await res.json();
       setData(json);
 
@@ -106,8 +110,8 @@ export default function HomePage() {
   };
 
   useEffect(() => {
-    fetchHomeData();
-    const interval = setInterval(fetchHomeData, 10000);
+    fetchHomeData(selectedUF, selectedTurno);
+    const interval = setInterval(() => fetchHomeData(selectedUF, selectedTurno), 10000);
     return () => clearInterval(interval);
   }, [isAuthenticated, userId, selectedUF, selectedTurno]);
 
@@ -129,16 +133,20 @@ export default function HomePage() {
 
   const president = data?.summaryCharts?.presidente || [];
 
-  // Lógica de extração dinâmica corrigida:
+  // Tratamento seguro para extrair o governador dependendo de como o backend responde
   const govRaw = data?.summaryCharts?.governador;
-  console.log("DADOS DO GOVERNADOR:", govRaw);
-  const governor = (govRaw && typeof govRaw === 'object' && !Array.isArray(govRaw))
-    ? (govRaw[selectedUF] || [])
-    : (Array.isArray(govRaw) ? govRaw : []);
+  let governor = [];
+  if (govRaw) {
+    if (!Array.isArray(govRaw) && typeof govRaw === 'object') {
+      governor = govRaw[selectedUF] || govRaw['CE'] || [];
+    } else if (Array.isArray(govRaw)) {
+      governor = govRaw;
+    }
+  }
 
   const respondents = data?.methodology?.respondents ?? 0;
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="flex items-center justify-center min-h-[50vh]">
         <div className="animate-pulse text-slate-400">Carregando pesquisa...</div>
@@ -178,7 +186,7 @@ export default function HomePage() {
               <p className="text-sm font-semibold text-slate-500 mb-3 text-center">
                 Governador ({selectedUF})
               </p>
-              <CandidateBars candidates={governor} emptyLabel="Aguardando primeiros votos" />
+              <CandidateBars candidates={governor} emptyLabel={`Aguardando votos em ${selectedUF}`} />
             </div>
 
             <div className="flex flex-col items-center justify-center text-center border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-4">
@@ -216,6 +224,7 @@ export default function HomePage() {
                 const turno = e.target.value;
                 setSelectedTurno(turno);
                 localStorage.setItem('xdenker_turno', turno);
+                fetchHomeData(selectedUF, turno);
               }}
               className="border-2 border-amber-400 rounded-lg px-3 py-2 text-sm font-semibold bg-white text-slate-800 min-w-[5.5rem]"
             >
@@ -231,6 +240,8 @@ export default function HomePage() {
                   const uf = e.target.value;
                   setSelectedUF(uf);
                   localStorage.setItem('xdenker_uf', uf);
+                  // Dispara a busca imediatamente com o novo estado selecionado
+                  fetchHomeData(uf, selectedTurno);
                 }}
                 className="border-2 border-amber-400 rounded-lg px-3 py-2 text-sm font-semibold bg-white text-slate-800 min-w-[4.5rem]"
               >
