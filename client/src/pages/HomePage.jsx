@@ -133,16 +133,18 @@ export default function HomePage() {
 
   const president = data?.summaryCharts?.presidente || [];
 
-  // Tratamento de debug visual direto na tela
-  const govRaw = data?.summaryCharts?.governador;
+  // Extração exata baseada na UF selecionada no momento
+  const summary = data?.summaryCharts || {};
+  const president = summary.presidente || [];
 
-  // Vamos forçar a pegar a chave exata da UF selecionada se for um objeto, senão usa o array
+  // Pega os dados do governador de forma segura para a UF ativa
   let governor = [];
-  if (govRaw) {
-    if (!Array.isArray(govRaw) && typeof govRaw === 'object') {
-      governor = govRaw[selectedUF] || [];
-    } else if (Array.isArray(govRaw)) {
-      governor = govRaw;
+  const govData = summary.governador;
+  if (govData) {
+    if (typeof govData === 'object' && !Array.isArray(govData)) {
+      governor = govData[selectedUF] || govData['CE'] || [];
+    } else if (Array.isArray(govData)) {
+      governor = govData;
     }
   }
 
