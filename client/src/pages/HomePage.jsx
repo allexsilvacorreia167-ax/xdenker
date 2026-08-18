@@ -131,6 +131,7 @@ export default function HomePage() {
 
   // Lógica de extração dinâmica corrigida:
   const govRaw = data?.summaryCharts?.governador;
+  console.log("DADOS DO GOVERNADOR:", govRaw);
   const governor = (govRaw && typeof govRaw === 'object' && !Array.isArray(govRaw))
     ? (govRaw[selectedUF] || [])
     : (Array.isArray(govRaw) ? govRaw : []);
