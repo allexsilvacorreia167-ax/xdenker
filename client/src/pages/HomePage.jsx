@@ -73,12 +73,15 @@ export default function HomePage() {
   const [selectedUF, setSelectedUF] = useState(
     () => localStorage.getItem('xdenker_uf') || 'CE'
   );
+  const [selectedTurno, setSelectedTurno] = useState(
+    () => localStorage.getItem('xdenker_turno') || '1'
+  );
 
   const userId = user?.userId || user?.id;
 
   const fetchHomeData = async () => {
     try {
-      const res = await apiFetch(`/api/?uf=${selectedUF || 'CE'}`);
+      const res = await apiFetch(`/api/?uf=${selectedUF || 'CE'}&turno=${selectedTurno}`);
       const json = await res.json();
       setData(json);
 
@@ -106,7 +109,7 @@ export default function HomePage() {
     fetchHomeData();
     const interval = setInterval(fetchHomeData, 10000);
     return () => clearInterval(interval);
-  }, [isAuthenticated, userId, selectedUF]);
+  }, [isAuthenticated, userId, selectedUF, selectedTurno]);
 
   const handleStartQuestionnaire = () => {
     if (!isAuthenticated) {
@@ -122,6 +125,7 @@ export default function HomePage() {
       return;
     }
     localStorage.setItem('xdenker_uf', selectedUF);
+    localStorage.setItem('xdenker_turno', selectedTurno);
     navigate('/questionario');
   };
 
@@ -157,7 +161,7 @@ export default function HomePage() {
 
       <div className="px-4 md:px-8 mb-6 max-w-5xl mx-auto">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6">
-          <h2 className="text-base font-bold text-slate-800 mb-5">Intenção de Voto</h2>
+          <h2 className="text-base font-bold text-slate-800 mb-5">Intenção de Voto ({selectedTurno}º Turno)</h2>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
             <div>
@@ -188,7 +192,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Participar + escolha de UF */}
+      {/* Participar + escolha de UF e Turno */}
       <div className="px-4 md:px-8 max-w-5xl mx-auto">
         <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6 flex flex-col md:flex-row md:items-center gap-4 justify-between">
           <div>
@@ -202,9 +206,18 @@ export default function HomePage() {
           </div>
 
           <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-xs border border-slate-200 rounded-lg px-3 py-1.5 text-slate-600">
-              1º Turno
-            </span>
+            <select
+              value={selectedTurno}
+              onChange={(e) => {
+                const turno = e.target.value;
+                setSelectedTurno(turno);
+                localStorage.setItem('xdenker_turno', turno);
+              }}
+              className="border-2 border-amber-400 rounded-lg px-3 py-2 text-sm font-semibold bg-white text-slate-800 min-w-[5.5rem]"
+            >
+              <option value="1">1º Turno</option>
+              <option value="2">2º Turno</option>
+            </select>
 
             <label className="flex items-center gap-2 text-xs text-slate-600">
               <span className="font-medium">Seu estado</span>
