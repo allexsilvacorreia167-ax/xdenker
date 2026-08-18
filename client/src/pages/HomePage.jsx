@@ -113,19 +113,18 @@ export default function HomePage() {
 
   const handleStartQuestionnaire = () => {
     if (!isAuthenticated) {
-      alert('Faça login (Nome + E-mail + Token) para iniciar o questionário.');
+      alert('Faça login para iniciar o questionário.');
       return;
     }
     if (hasVoted) {
-      alert('Você já participou desta pesquisa com este usuário.');
+      alert('Você já participou desta pesquisa.');
       return;
     }
-    if (!selectedUF) {
-      alert('Selecione o seu estado (UF) antes de iniciar.');
-      return;
-    }
+
+    // EXATAMENTE AQUI: Salvamos a UF e o Turno escolhidos pelo usuário antes de ir para a próxima tela
     localStorage.setItem('xdenker_uf', selectedUF);
     localStorage.setItem('xdenker_turno', selectedTurno);
+
     navigate('/questionario');
   };
 

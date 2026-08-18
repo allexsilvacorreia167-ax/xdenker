@@ -13,6 +13,8 @@ const SCALE_COLORS = {
 };
 
 export default function QuestionarioPage() {
+  const selectedUF = localStorage.getItem('xdenker_uf') || 'CE';
+  const selectedTurno = localStorage.getItem('xdenker_turno') || '1';
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const [stage, setStage] = useState(1);
@@ -39,7 +41,7 @@ export default function QuestionarioPage() {
       navigate('/');
       return;
     }
-    apiFetch('/api/research/start', {
+    apiFetch(`/api/research/start?uf=${selectedUF}&turno=${selectedTurno}`, {
       method: 'POST',
       headers: {
         Authorization: 'Bearer temp',
@@ -63,7 +65,7 @@ export default function QuestionarioPage() {
         setLoading(false);
         navigate('/');
       });
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, navigate, selectedUF, selectedTurno]);
 
   const handleFinish = async () => {
     if (!presidentId || !governorId) {
@@ -90,7 +92,8 @@ export default function QuestionarioPage() {
           sectorAnswers: sectors,
           presidentId,
           governorId,
-          stateUF: 'CE',
+          stateUF: selectedUF,
+          turno: selectedTurno,
         }),
       });
       const data = await res.json();
@@ -292,7 +295,7 @@ export default function QuestionarioPage() {
           <div>
             <h1 className="text-xl font-bold text-slate-800 text-center mb-1">Sua Escolha</h1>
             <p className="text-sm text-slate-500 text-center mb-6">
-              Selecione seus candidatos para o 1º turno.
+              Selecione seus candidatos para o {selectedTurno}º turno.
             </p>
 
             <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm mb-4">
@@ -328,7 +331,7 @@ export default function QuestionarioPage() {
 
             <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm mb-6">
               <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
-                📍 Governador (CE)
+                📍 Governador ({selectedUF})
               </p>
               <div className="space-y-2">
                 {questions.candidates.governor.map((c) => (
@@ -363,7 +366,7 @@ export default function QuestionarioPage() {
               <TseAutocomplete
                 label="Deputado Federal"
                 cargo="deputado_federal"
-                uf="CE"
+                uf={selectedUF}
                 year={2022}
                 value={depFederal}
                 onChange={setDepFederal}
@@ -371,7 +374,7 @@ export default function QuestionarioPage() {
               <TseAutocomplete
                 label="Deputado Estadual"
                 cargo="deputado_estadual"
-                uf="CE"
+                uf={selectedUF}
                 year={2022}
                 value={depEstadual}
                 onChange={setDepEstadual}
@@ -379,7 +382,7 @@ export default function QuestionarioPage() {
               <TseAutocomplete
                 label="Senador"
                 cargo="senador"
-                uf="CE"
+                uf={selectedUF}
                 year={2022}
                 value={senador}
                 onChange={setSenador}
