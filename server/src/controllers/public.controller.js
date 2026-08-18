@@ -4,6 +4,9 @@ export const getHomeData = async (req, res) => {
   try {
     const results = getAggregatedResults();
 
+    // Pega o UF enviado pela query string (ex: ?uf=SP), com fallback para 'CE'
+    const uf = (req.query.uf || 'CE').toUpperCase();
+
     res.json({
       banner: {
         title: 'Sua Opinião Importa - Eleições 2026',
@@ -11,7 +14,8 @@ export const getHomeData = async (req, res) => {
       },
       summaryCharts: {
         presidente: results.president,
-        governador: results.governor['CE'] || [],
+        // Agora busca dinamicamente usando a variável 'uf' recebida na requisição
+        governador: results.governor[uf] || results.governor['CE'] || [],
       },
       methodology: {
         respondents: results.totalParticipants,
