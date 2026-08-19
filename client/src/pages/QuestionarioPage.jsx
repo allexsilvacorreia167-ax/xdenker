@@ -380,7 +380,7 @@ export default function QuestionarioPage() {
                 label="Deputado Federal"
                 cargo="deputado_federal"
                 uf={selectedUF}
-                year={2022}
+                year={2026}
                 value={depFederal}
                 onChange={setDepFederal}
               />
@@ -388,7 +388,7 @@ export default function QuestionarioPage() {
                 label="Deputado Estadual"
                 cargo="deputado_estadual"
                 uf={selectedUF}
-                year={2022}
+                year={2026}
                 value={depEstadual}
                 onChange={setDepEstadual}
               />
@@ -396,7 +396,7 @@ export default function QuestionarioPage() {
                 label="Senador"
                 cargo="senador"
                 uf={selectedUF}
-                year={2022}
+                year={2026}
                 value={senador}
                 onChange={setSenador}
               />

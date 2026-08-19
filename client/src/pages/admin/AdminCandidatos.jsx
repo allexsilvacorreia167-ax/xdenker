@@ -85,7 +85,7 @@ export default function AdminCandidatos() {
       <section className="bg-blue-50 border border-blue-100 rounded-xl p-5">
         <h3 className="font-semibold text-slate-800 mb-2">Importar candidatos do TSE</h3>
         <p className="text-sm text-slate-600 mb-3">
-          Consulta a API DivulgaCandContas e preenche a lista com dados oficiais (ano 2022 como referência até liberação completa de 2026).
+          Consulta a API DivulgaCandContas e preenche a lista com dados oficiais 2026.
         </p>
         <div className="flex flex-wrap gap-2">
           <button
@@ -94,7 +94,7 @@ export default function AdminCandidatos() {
             onClick={async () => {
               setMsg('Consultando TSE (Presidente)...');
               try {
-                const res = await apiFetch('/api/tse/candidatos?year=2022&uf=BR&cargo=presidente');
+                const res = await apiFetch('/api/tse/candidatos?year=2026&uf=BR&cargo=presidente');
                 const data = await res.json();
                 const list = data.candidates || [];
                 for (const c of list.slice(0, 30)) {
@@ -126,7 +126,7 @@ export default function AdminCandidatos() {
             onClick={async () => {
               setMsg('Consultando TSE (Governador CE)...');
               try {
-                const res = await apiFetch('/api/tse/candidatos?year=2022&uf=CE&cargo=governador');
+                const res = await apiFetch('/api/tse/candidatos?year=2026&uf=CE&cargo=governador');
                 const data = await res.json();
                 const list = data.candidates || [];
                 for (const c of list.slice(0, 30)) {

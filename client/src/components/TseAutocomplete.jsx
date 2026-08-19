@@ -8,8 +8,8 @@ import { useState, useEffect, useRef } from 'react';
 export default function TseAutocomplete({
   label,
   cargo = 'deputado_federal',
-  uf = 'CE',
-  year = 2022,
+  uf,
+  year = 2026,
   value,
   onChange,
   placeholder = 'Digite nome, partido ou número...',
@@ -21,6 +21,9 @@ export default function TseAutocomplete({
   const [source, setSource] = useState(null);
   const debounce = useRef(null);
   const wrap = useRef(null);
+
+  // Garante que a UF seja dinâmica (prop recebida ou fallback do localStorage)
+  const activeUf = uf || localStorage.getItem('xdenker_uf') || 'CE';
 
   useEffect(() => {
     const onClick = (e) => {
@@ -39,7 +42,7 @@ export default function TseAutocomplete({
     debounce.current = setTimeout(async () => {
       setLoading(true);
       try {
-        const params = new URLSearchParams({ q: query, uf, cargo, year, limit: 15 });
+        const params = new URLSearchParams({ q: query, uf: activeUf, cargo, year, limit: 15 });
         const res = await apiFetch(`/api/tse/buscar?${params}`);
         const data = await res.json();
         setResults(data.candidates || []);
@@ -52,7 +55,7 @@ export default function TseAutocomplete({
       }
     }, 350);
     return () => clearTimeout(debounce.current);
-  }, [query, uf, cargo, year]);
+  }, [query, activeUf, cargo, year]);
 
   const select = (c) => {
     onChange?.(c);
@@ -108,7 +111,7 @@ export default function TseAutocomplete({
         </ul>
       )}
       {open && !loading && query.length >= 2 && results.length === 0 && (
-        <div className="absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg px-4 py-3 text-sm text-slate-500">
+        <div className="pseudo-absolute absolute z-20 mt-1 w-full bg-white border border-slate-200 rounded-xl shadow-lg px-4 py-3 text-sm text-slate-500">
           Nenhum candidato encontrado
           {source === 'fallback' && ' (API TSE indisponível — usando fallback)'}
         </div>

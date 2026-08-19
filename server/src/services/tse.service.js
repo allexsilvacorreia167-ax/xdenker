@@ -17,7 +17,6 @@ const CACHE_TTL = 60 * 60 * 1000;
 
 // Códigos de eleição conhecidos (1º turno)
 const ELECTION_CODES = {
-  // 544 = geral (presidente); 546 = estadual 2022
   2022: { ciclo: 'ele2022', codigo: '544', codigoEstadual: '546', codigo2t: '545' },
   2024: { ciclo: 'ele2024', codigo: '619' },
   2026: { ciclo: 'ele2026', codigo: '203220026', codigoEstadual: '203220026' },
@@ -60,6 +59,24 @@ async function httpJson(url) {
   return res.json();
 }
 
+/** Busca o ID da eleição atual dinamicamente ou recorre ao mapeamento */
+async function getActiveElectionId(year) {
+  try {
+    const data = await httpJson(`${DIVULGA_BASE}/eleicao/listar`);
+    const list = Array.isArray(data) ? data : data.eleicoes;
+    if (list) {
+      const election = list.find(e => e.ano === Number(year));
+      if (election && election.id) return String(election.id);
+    }
+  } catch (e) {
+    console.warn('[TSE eleicao/listar] Falha ao buscar ID dinâmico, usando fallback estático:', e.message);
+  }
+
+  // Fallback para o mapeamento estático se a listagem falhar
+  const meta = ELECTION_CODES[year];
+  return meta ? meta.codigo : null;
+}
+
 /** Lista eleições conhecidas + tentativa na API Divulga */
 export async function listElections() {
   const key = 'eleicoes';
@@ -87,7 +104,6 @@ export async function listElections() {
 
 /**
  * Candidatos via resultados.tse.jus.br (JSON oficial de apuração)
- * Formato: .../dados-simplificados/{abr}/{abr}-c{cargo}-e{eleicao}-r.json
  */
 async function fromResultados(year, uf, cargoCode) {
   const meta = ELECTION_CODES[year];
@@ -95,7 +111,6 @@ async function fromResultados(year, uf, cargoCode) {
 
   const abr = uf.toLowerCase() === 'br' ? 'br' : uf.toLowerCase();
   const cargoPad = String(cargoCode).padStart(4, '0');
-  // Presidente usa codigo federal; governador/outros cargos estaduais usam codigoEstadual
   const eleCode = (cargoCode !== 1 && meta.codigoEstadual) ? meta.codigoEstadual : meta.codigo;
   const url = `${RESULTADOS_BASE}/${meta.ciclo}/${eleCode}/dados-simplificados/${abr}/${abr}-c${cargoPad}-e${eleCode.padStart(6, '0')}-r.json`;
 
@@ -124,12 +139,11 @@ async function fromResultados(year, uf, cargoCode) {
   };
 }
 
-/** Tentativa DivulgaCandContas */
+/** Tentativa DivulgaCandContas com ID dinâmico */
 async function fromDivulga(year, uf, cargoCode) {
-  const meta = ELECTION_CODES[year];
-  const eleCode = meta ? meta.codigo : year; // Usa o código mapeado (ex: 203220026) se existir
+  const eleCode = await getActiveElectionId(year);
+  if (!eleCode) throw new Error(`Não foi possível obter o código da eleição para o ano ${year}`);
 
-  // Rota corrigida com base no padrão capturado no Network do TSE
   const path = `/candidatura/listar/${eleCode}/${uf.toUpperCase()}/${cargoCode}/candidatos`;
   const raw = await httpJson(`${DIVULGA_BASE}${path}`);
   let list = [];
@@ -156,41 +170,7 @@ async function fromDivulga(year, uf, cargoCode) {
 }
 
 function fallbackCandidates(cargoCode, uf) {
-  if (cargoCode === 1) {
-    return [
-      { id: '13-pt', name: 'LULA', fullName: 'LUIZ INÁCIO LULA DA SILVA', party: 'PT', number: '13', source: 'fallback' },
-      { id: '22-pl', name: 'JAIR BOLSONARO', fullName: 'JAIR MESSIAS BOLSONARO', party: 'PL', number: '22', source: 'fallback' },
-      { id: '12-pdt', name: 'CIRO GOMES', fullName: 'CIRO FERREIRA GOMES', party: 'PDT', number: '12', source: 'fallback' },
-      { id: '15-mdb', name: 'SIMONE TEBET', fullName: 'SIMONE NASSAR TEBET', party: 'MDB', number: '15', source: 'fallback' },
-    ];
-  }
-  if (cargoCode === 3 && uf.toUpperCase() === 'CE') {
-    return [
-      { id: 'elmano-ce', name: 'ELMANO DE FREITAS', party: 'PT', number: '13', source: 'fallback' },
-      { id: 'ciro-ce', name: 'CIRO GOMES', party: 'PDT', number: '12', source: 'fallback' },
-      { id: 'capitão-ce', name: 'CAPITÃO WAGNER', party: 'UNIÃO', number: '44', source: 'fallback' },
-    ];
-  }
-  // Amostra legislativa para autocomplete funcionar offline
-  if (cargoCode === 6) {
-    return [
-      { id: 'df-1', name: 'ANDRÉ FERNANDES', party: 'PL', number: '2200', source: 'fallback' },
-      { id: 'df-2', name: 'ROBÉRIO MONTEIRO', party: 'PDT', number: '1234', source: 'fallback' },
-      { id: 'df-3', name: 'LUIZIANNE LINS', party: 'PT', number: '1313', source: 'fallback' },
-    ];
-  }
-  if (cargoCode === 7) {
-    return [
-      { id: 'de-1', name: 'AURÉLIO QUEIROZ', party: 'PSD', number: '5511', source: 'fallback' },
-      { id: 'de-2', name: 'JÓ ABREU', party: 'PT', number: '1311', source: 'fallback' },
-    ];
-  }
-  if (cargoCode === 5) {
-    return [
-      { id: 'sen-1', name: 'EDUARDO GIRÃO', party: 'NOVO', number: '222', source: 'fallback' },
-      { id: 'sen-2', name: 'CAMILO SANTANA', party: 'PT', number: '131', source: 'fallback' },
-    ];
-  }
+  // Retorna vazio para evitar dados obsoletos de anos anteriores
   return [];
 }
 
@@ -227,7 +207,7 @@ export async function listCandidates(year, uf, cargo) {
     console.warn('[TSE divulga]', e.message);
   }
 
-  // 3) Fallback
+  // 3) Fallback limpo
   const fb = {
     source: 'fallback',
     year,
@@ -235,7 +215,7 @@ export async function listCandidates(year, uf, cargo) {
     cargo: cargoCode,
     total: 0,
     candidates: fallbackCandidates(cargoCode, uf),
-    warning: 'API TSE indisponível ou sem dados para este recorte. Usando base local de referência.',
+    warning: 'API TSE indisponível ou sem dados para este recorte.',
   };
   fb.total = fb.candidates.length;
   cacheSet(key, fb);
@@ -263,7 +243,6 @@ export async function searchLegislative(year, uf, cargo, query, limit = 20) {
 }
 
 export async function getCandidateDetail(year, id) {
-  // Busca na lista de presidente/governador em cache ou refetch
   try {
     const pres = await listCandidates(year, 'BR', 1);
     const found = pres.candidates.find((c) => c.id === String(id));
