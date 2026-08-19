@@ -144,13 +144,20 @@ async function fromDivulga(year, uf, cargoCode) {
   const eleCode = await getActiveElectionId(year);
   if (!eleCode) throw new Error(`Não foi possível obter o código da eleição para o ano ${year}`);
 
+  // Rota de listagem geral de candidatos do TSE
   const path = `/candidatura/listar/${eleCode}/${uf.toUpperCase()}/${cargoCode}/candidatos`;
   const raw = await httpJson(`${DIVULGA_BASE}${path}`);
-  let list = [];
-  if (Array.isArray(raw)) list = raw;
-  else if (Array.isArray(raw?.candidatos)) list = raw.candidatos;
-  else if (Array.isArray(raw?.dados)) list = raw.dados;
 
+  let list = [];
+  if (Array.isArray(raw)) {
+    list = raw;
+  } else if (Array.isArray(raw?.candidatos)) {
+    list = raw.candidatos;
+  } else if (Array.isArray(raw?.data)) {
+    list = raw.data;
+  }
+
+  // Mapeando apenas o essencial para a listagem (Nome, Número, Partido e UF)
   return {
     source: 'tse-divulgacand',
     year,
@@ -160,12 +167,10 @@ async function fromDivulga(year, uf, cargoCode) {
     candidates: list.map((c) => ({
       id: String(c.id || c.sqCand || ''),
       name: c.nomeUrna || c.nome || '',
-      fullName: c.nomeCompleto || c.nome || '',
-      party: (c.partido?.sigla || c.sg_partido || '').toUpperCase(),
-      number: String(c.numero || c.nr_candidato || ''),
-      photo: c.fotoUrl || null,
-      situation: c.descricaoSituacao || null,
-    })).filter((c) => c.name),
+      party: (c.partido?.sigla || c.siglaPartido || '').toUpperCase(),
+      number: String(c.numero || c.numeroCandidato || ''),
+      uf: uf.toUpperCase(),
+    })).filter((c) => c.name && c.number),
   };
 }
 
