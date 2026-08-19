@@ -1,11 +1,5 @@
 /**
  * Integração real com fontes oficiais do TSE
- *
- * Fontes:
- * 1. resultados.tse.jus.br — JSON de apuração (candidatos executivos)
- * 2. DivulgaCandContas REST (quando disponível)
- * 3. Fallback local alinhado às siglas oficiais
- *
  * Cargos: 1=Presidente, 3=Governador, 5=Senador, 6=Dep.Federal, 7=Dep.Estadual
  */
 
@@ -15,7 +9,6 @@ const DIVULGA_BASE = 'https://divulgacandcontas.tse.jus.br/divulga/rest/v1';
 const cache = new Map();
 const CACHE_TTL = 60 * 60 * 1000;
 
-// Códigos de eleição conhecidos (1º turno)
 const ELECTION_CODES = {
   2022: { ciclo: 'ele2022', codigo: '544', codigoEstadual: '546', codigo2t: '545' },
   2024: { ciclo: 'ele2024', codigo: '619' },
@@ -59,7 +52,6 @@ async function httpJson(url) {
   return res.json();
 }
 
-/** Busca o ID da eleição atual dinamicamente ou recorre ao mapeamento */
 async function getActiveElectionId(year) {
   try {
     const data = await httpJson(`${DIVULGA_BASE}/eleicao/listar`);
@@ -69,15 +61,12 @@ async function getActiveElectionId(year) {
       if (election && election.id) return String(election.id);
     }
   } catch (e) {
-    console.warn('[TSE eleicao/listar] Falha ao buscar ID dinâmico, usando fallback estático:', e.message);
+    console.warn('[TSE eleicao/listar] Falha, usando fallback estático:', e.message);
   }
-
-  // Fallback para o mapeamento estático se a listagem falhar
   const meta = ELECTION_CODES[year];
   return meta ? meta.codigo : null;
 }
 
-/** Lista eleições conhecidas + tentativa na API Divulga */
 export async function listElections() {
   const key = 'eleicoes';
   const cached = cacheGet(key);
@@ -102,49 +91,10 @@ export async function listElections() {
   }
 }
 
-/**
- * Candidatos via resultados.tse.jus.br (JSON oficial de apuração)
- */
-async function fromResultados(year, uf, cargoCode) {
-  const meta = ELECTION_CODES[year];
-  if (!meta) throw new Error(`Ano ${year} sem código de eleição mapeado`);
-
-  const abr = uf.toLowerCase() === 'br' ? 'br' : uf.toLowerCase();
-  const cargoPad = String(cargoCode).padStart(4, '0');
-  const eleCode = (cargoCode !== 1 && meta.codigoEstadual) ? meta.codigoEstadual : meta.codigo;
-  const url = `${RESULTADOS_BASE}/${meta.ciclo}/${eleCode}/dados-simplificados/${abr}/${abr}-c${cargoPad}-e${eleCode.padStart(6, '0')}-r.json`;
-
-  const raw = await httpJson(url);
-  const cand = Array.isArray(raw?.cand) ? raw.cand : [];
-
-  return {
-    source: 'tse-resultados',
-    year,
-    uf: uf.toUpperCase(),
-    cargo: cargoCode,
-    total: cand.length,
-    url,
-    candidates: cand.map((c) => ({
-      id: String(c.sqcand || c.n || `${c.nm}-${c.n}`),
-      name: c.nm || c.nmu || '',
-      fullName: c.nm || '',
-      party: (c.cc || c.p || '').split(' - ')[0]?.trim().toUpperCase() || '',
-      number: String(c.n || ''),
-      votes: c.vap ? Number(String(c.vap).replace(/\./g, '')) : null,
-      percent: c.pvap || null,
-      elected: c.st === 'Eleito' || c.st === 'Eleito por QP' || c.st === 'Eleito por média',
-      situation: c.st || null,
-      photo: null,
-    })).filter((c) => c.name),
-  };
-}
-
-/** Tentativa DivulgaCandContas com ID dinâmico */
 async function fromDivulga(year, uf, cargoCode) {
   const eleCode = await getActiveElectionId(year);
   if (!eleCode) throw new Error(`Não foi possível obter o código da eleição para o ano ${year}`);
 
-  // Rota de listagem geral de candidatos do TSE
   const path = `/candidatura/listar/${eleCode}/${uf.toUpperCase()}/${cargoCode}/candidatos`;
   const raw = await httpJson(`${DIVULGA_BASE}${path}`);
 
@@ -157,7 +107,7 @@ async function fromDivulga(year, uf, cargoCode) {
     list = raw.data;
   }
 
-  // Mapeando apenas o essencial para a listagem (Nome, Número, Partido e UF)
+  // Mapeamento limpo contendo apenas nome, número, partido e UF
   return {
     source: 'tse-divulgacand',
     year,
@@ -175,33 +125,15 @@ async function fromDivulga(year, uf, cargoCode) {
 }
 
 function fallbackCandidates(cargoCode, uf) {
-  // Retorna vazio para evitar dados obsoletos de anos anteriores
   return [];
 }
 
-/**
- * Lista candidatos — tenta Resultados → Divulga → fallback
- */
 export async function listCandidates(year, uf, cargo) {
   const cargoCode = typeof cargo === 'string' ? CARGO_CODES[cargo] || Number(cargo) : cargo;
   const key = `cand:${year}:${uf}:${cargoCode}`;
   const cached = cacheGet(key);
   if (cached) return cached;
 
-  // 1) Resultados TSE (melhor para executivos 2022+)
-  if ([1, 3].includes(cargoCode) && ELECTION_CODES[year]) {
-    try {
-      const data = await fromResultados(year, uf, cargoCode);
-      if (data.candidates.length > 0) {
-        cacheSet(key, data);
-        return data;
-      }
-    } catch (e) {
-      console.warn('[TSE resultados]', e.message);
-    }
-  }
-
-  // 2) DivulgaCandContas
   try {
     const data = await fromDivulga(year, uf, cargoCode);
     if (data.candidates.length > 0) {
@@ -212,7 +144,6 @@ export async function listCandidates(year, uf, cargo) {
     console.warn('[TSE divulga]', e.message);
   }
 
-  // 3) Fallback limpo
   const fb = {
     source: 'fallback',
     year,
@@ -235,7 +166,6 @@ export async function searchLegislative(year, uf, cargo, query, limit = 20) {
     list = list.filter(
       (c) =>
         c.name.toLowerCase().includes(q) ||
-        (c.fullName || '').toLowerCase().includes(q) ||
         c.party.toLowerCase().includes(q) ||
         c.number.includes(q)
     );
@@ -248,12 +178,7 @@ export async function searchLegislative(year, uf, cargo, query, limit = 20) {
 }
 
 export async function getCandidateDetail(year, id) {
-  try {
-    const pres = await listCandidates(year, 'BR', 1);
-    const found = pres.candidates.find((c) => c.id === String(id));
-    if (found) return { ...found, source: pres.source };
-  } catch { /* ignore */ }
-  return { id, error: 'Candidato não encontrado', source: 'error' };
+  return { id, error: 'Detalhe não carregado na listagem', source: 'error' };
 }
 
 export default {
