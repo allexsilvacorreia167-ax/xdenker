@@ -41,14 +41,14 @@ export default function QuestionarioPage() {
       navigate('/');
       return;
     }
-    apiFetch(`/api/research/start?uf=${selectedUF}&turno=${selectedTurno}`, {
+    apiFetch('/api/research/start', {
       method: 'POST',
       headers: {
         Authorization: 'Bearer temp',
         'X-User-Id': uid,
         'X-User-Name': user?.fullName || '',
-        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ stateUF: selectedUF, turno: selectedTurno }),
     })
       .then(async (r) => {
         const data = await r.json();
@@ -100,6 +100,19 @@ export default function QuestionarioPage() {
       if (!res.ok) throw new Error(data.error || 'Erro');
       setResult(data);
       setStage(4);
+      try {
+        const uid = user?.userId || user?.id;
+        if (uid) {
+          localStorage.setItem(
+            `xdenker_coherence_${uid}`,
+            JSON.stringify({
+              score: data.score,
+              label: data.label,
+              stateUF: selectedUF,
+            })
+          );
+        }
+      } catch (_) { }
     } catch (err) {
       alert(err.message);
     } finally {

@@ -1,14 +1,8 @@
 import { useEffect, useState } from 'react';
 import { apiFetch } from '../api';
+import { useAuth } from '../hooks/useAuth';
 
-const BAR_COLORS = [
-  '#1e293b',
-  '#f59e0b',
-  '#2563eb',
-  '#059669',
-  '#f43f5e',
-  '#7c3aed',
-];
+const BAR_COLORS = ['#1e293b', '#f59e0b', '#2563eb', '#059669', '#f43f5e', '#7c3aed'];
 
 const SECTOR_LABELS = {
   seguranca: 'Segurança Pública',
@@ -18,6 +12,11 @@ const SECTOR_LABELS = {
   infraestrutura: 'Infraestrutura',
   combateCorrupcao: 'Combate à Corrupção',
 };
+
+const UFS_BR = [
+  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
+  'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
+];
 
 function HorizontalBars({ items, emptyText }) {
   if (!items?.length) {
@@ -29,13 +28,13 @@ function HorizontalBars({ items, emptyText }) {
     <div className="space-y-3">
       {items.map((c, i) => (
         <div key={c.id || c.key || i}>
-          <div className="flex justify-between text-sm mb-1">
+          <div className="flex justify-between text-sm mb-1 gap-2">
             <span className="font-medium text-slate-700">
               {c.name || c.label}
               {c.party ? ` (${c.party})` : ''}
             </span>
-            <span className="font-bold text-slate-800">
-              {c.percent}%
+            <span className="font-bold text-slate-800 shrink-0">
+              {c.percent ?? 0}%
               {typeof c.votes === 'number' ? (
                 <span className="text-slate-400 font-normal text-xs ml-1">
                   ({c.votes} voto{c.votes !== 1 ? 's' : ''})
@@ -63,14 +62,31 @@ function HorizontalBars({ items, emptyText }) {
 }
 
 export default function PesquisasPage() {
+  const { isAuthenticated, user } = useAuth();
+  const [selectedUF, setSelectedUF] = useState(
+    () => localStorage.getItem('xdenker_uf') || 'CE'
+  );
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [myCoherence, setMyCoherence] = useState(null);
+  const userId = user?.userId || user?.id;
 
   const load = async () => {
     try {
-      const res = await apiFetch('/api/pesquisas');
+      const res = await apiFetch(`/api/pesquisas?uf=${selectedUF || 'CE'}`);
       const json = await res.json();
       setData(json);
+
+      if (isAuthenticated && userId) {
+        const stored = localStorage.getItem(`xdenker_coherence_${userId}`);
+        if (stored) {
+          try {
+            setMyCoherence(JSON.parse(stored));
+          } catch {
+            setMyCoherence(null);
+          }
+        }
+      }
     } catch (e) {
       console.error(e);
     } finally {
@@ -79,12 +95,13 @@ export default function PesquisasPage() {
   };
 
   useEffect(() => {
+    setLoading(true);
     load();
     const id = setInterval(load, 10000);
     return () => clearInterval(id);
-  }, []);
+  }, [selectedUF, isAuthenticated, userId]);
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="flex items-center justify-center min-h-[40vh] text-slate-400">
         Carregando resultados...
@@ -94,10 +111,18 @@ export default function PesquisasPage() {
 
   const total = data?.totalParticipants ?? 0;
   const president = data?.intentionLines?.presidente || [];
-  const governor = data?.intentionLines?.governador?.CE || data?.intentionLines?.governador || [];
-  const govList = Array.isArray(governor) ? governor : [];
+
+  // Governador só da UF (API devolve array em governadorUF ou objeto por estado)
+  let governor = data?.intentionLines?.governadorUF;
+  if (!Array.isArray(governor)) {
+    const g = data?.intentionLines?.governador;
+    if (Array.isArray(g)) governor = g;
+    else if (g && typeof g === 'object') governor = g[selectedUF] || [];
+    else governor = [];
+  }
+
   const knowledge = data?.politicalKnowledgeIndex ?? 0;
-  const sectors = data?.sectorEvaluation || {};
+  const sectors = data?.sectorEvaluationUF || data?.sectorEvaluation || {};
 
   const sectorItems = Object.entries(SECTOR_LABELS).map(([key, label]) => ({
     key,
@@ -108,77 +133,104 @@ export default function PesquisasPage() {
   return (
     <div className="bg-slate-50 min-h-screen pb-16">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center gap-3 mb-6">
-          <img src="/logo.png" alt="XDENKER" className="h-9 w-auto object-contain" />
-          <div>
-            <h1 className="text-xl font-bold text-slate-800">Pesquisas</h1>
-            <p className="text-sm text-slate-500">
-              Resultados em tempo real ·{' '}
-              <strong>{total.toLocaleString('pt-BR')}</strong> participante
-              {total !== 1 ? 's' : ''}
-            </p>
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+          <div className="flex items-center gap-3">
+            <img src="/logo.png" alt="XDENKER" className="h-9 w-auto object-contain" />
+            <div>
+              <h1 className="text-xl font-bold text-slate-800">Pesquisas</h1>
+              <p className="text-sm text-slate-500">
+                Resultados em tempo real ·{' '}
+                <strong>{total.toLocaleString('pt-BR')}</strong> participante
+                {total !== 1 ? 's' : ''}
+              </p>
+            </div>
           </div>
+          <label className="flex items-center gap-2 text-sm text-slate-600">
+            <span className="font-medium">Estado</span>
+            <select
+              value={selectedUF}
+              onChange={(e) => {
+                const uf = e.target.value;
+                setSelectedUF(uf);
+                localStorage.setItem('xdenker_uf', uf);
+              }}
+              className="border-2 border-amber-400 rounded-lg px-3 py-2 text-sm font-semibold bg-white"
+            >
+              {UFS_BR.map((uf) => (
+                <option key={uf} value={uf}>{uf}</option>
+              ))}
+            </select>
+          </label>
         </div>
 
-        {/* Presidente — uma barra por candidato */}
+        {/* Presidente — nacional */}
         <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
-          <h2 className="font-semibold text-slate-800 mb-4">
-            Intenção de Voto — Presidente
-          </h2>
+          <h2 className="font-semibold text-slate-800 mb-1">Intenção de Voto — Presidente</h2>
+          <p className="text-xs text-slate-400 mb-4">Pesquisa nacional</p>
           <HorizontalBars
             items={president}
             emptyText="Nenhum candidato a presidente cadastrado no ADM"
           />
         </section>
 
-        {/* Governador — uma barra por candidato */}
+        {/* Governador — UF da home */}
         <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
-          <h2 className="font-semibold text-slate-800 mb-4">
-            Intenção de Voto — Governador (CE)
+          <h2 className="font-semibold text-slate-800 mb-1">
+            Intenção de Voto — Governador ({selectedUF})
           </h2>
+          <p className="text-xs text-slate-400 mb-4">Estado escolhido na página inicial</p>
           <HorizontalBars
-            items={govList}
-            emptyText="Nenhum candidato a governador cadastrado no ADM"
+            items={governor}
+            emptyText={`Nenhum governador cadastrado no ADM para ${selectedUF}`}
           />
         </section>
 
-        {/* Conhecimento político */}
+        {/* Coerência */}
         <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
-          <h2 className="font-semibold text-slate-800 mb-2">
-            Índice de Conhecimento Político
-          </h2>
+          <h2 className="font-semibold text-slate-800 mb-2">Índice de Conhecimento Político</h2>
           <p className="text-3xl font-bold text-slate-800 mb-2">{knowledge}%</p>
           <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
             <div
               className="h-full bg-blue-600 rounded-full transition-all"
-              style={{ width: `${knowledge}%` }}
+              style={{ width: `${Math.min(100, knowledge)}%` }}
             />
           </div>
           <p className="text-xs text-slate-400 mt-2">
             Média de acertos nas perguntas de competência institucional
             {total === 0 ? ' (sem pesquisas ainda)' : ''}
           </p>
+
+          {isAuthenticated && myCoherence && (
+            <div className="mt-4 p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+              <p className="text-xs font-semibold text-emerald-700 uppercase mb-1">
+                Sua coerência política
+              </p>
+              <p className="text-2xl font-bold text-emerald-700">
+                {myCoherence.score ?? myCoherence.coherenceScore ?? 0}%
+              </p>
+              <p className="text-xs text-emerald-600">
+                {myCoherence.label || ''}
+                {myCoherence.stateUF ? ` · ${myCoherence.stateUF}` : ''}
+              </p>
+            </div>
+          )}
         </section>
 
-        {/* Áreas prioritárias — em português */}
+        {/* Setores — estaduais */}
         <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
           <h2 className="font-semibold text-slate-800 mb-1">
-            Avaliação das Áreas Prioritárias
+            Avaliação das Áreas Prioritárias ({selectedUF})
           </h2>
           <p className="text-xs text-slate-400 mb-4">
-            Média das respostas (Ruim=25 · Médio=50 · Bom=75 · Excelente=100)
+            Sensação por estado · Ruim=25 · Médio=50 · Bom=75 · Excelente=100
           </p>
-          <HorizontalBars
-            items={sectorItems}
-            emptyText="Sem avaliações ainda"
-          />
+          <HorizontalBars items={sectorItems} emptyText="Sem avaliações ainda" />
         </section>
 
         {total === 0 && (
           <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800">
-            <strong>Ainda não há pesquisas registradas.</strong> Faça login com
-            e-mails diferentes, complete o questionário e os percentuais serão
-            calculados automaticamente (ex.: 6 em 10 votos = 60%).
+            <strong>Ainda não há pesquisas registradas.</strong> Complete o
+            questionário e os percentuais serão calculados automaticamente.
           </div>
         )}
       </div>

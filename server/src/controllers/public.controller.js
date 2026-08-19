@@ -2,30 +2,8 @@ import { getAggregatedResults, resetResults } from '../services/results.store.js
 
 export const getHomeData = async (req, res) => {
   try {
-    const results = getAggregatedResults() || {};
-    const uf = (req.query.uf || 'CE').toUpperCase();
-
-    let governadorList = [];
-    const govData = results.governor;
-
-    if (govData) {
-      if (Array.isArray(govData)) {
-        governadorList = govData.filter(c => (c.uf || '').toUpperCase() === uf);
-      } else if (typeof govData === 'object') {
-        const matchingKey = Object.keys(govData).find(key => key.toUpperCase() === uf);
-        if (matchingKey && Array.isArray(govData[matchingKey])) {
-          governadorList = govData[matchingKey];
-        } else if (govData[uf] && Array.isArray(govData[uf])) {
-          governadorList = govData[uf];
-        } else {
-          // Fallback ultra seguro: se não achou a chave exata, pega o primeiro array que encontrar nas propriedades
-          const firstValidKey = Object.keys(govData).find(k => Array.isArray(govData[k]) && govData[k].length > 0);
-          if (firstValidKey) {
-            governadorList = govData[firstValidKey];
-          }
-        }
-      }
-    }
+    const results = await getAggregatedResults();
+    const uf = (req.query.uf || 'CE').toString().toUpperCase().slice(0, 2);
 
     res.json({
       banner: {
@@ -33,11 +11,12 @@ export const getHomeData = async (req, res) => {
         image: '/banner.jpg',
       },
       summaryCharts: {
-        presidente: results.presidente || results.president || [],
-        governador: governadorList,
+        presidente: results.president,
+        governador: results.governor[uf] || [],
+        uf,
       },
       methodology: {
-        respondents: results.totalParticipants || 0,
+        respondents: results.totalParticipants,
         marginOfError: results.totalParticipants > 0 ? '±1.5%' : '—',
       },
       hasVoted: false,
@@ -50,16 +29,24 @@ export const getHomeData = async (req, res) => {
 
 export const getGlobalResults = async (req, res) => {
   try {
-    const results = getAggregatedResults();
+    const results = await getAggregatedResults();
+    const uf = (req.query.uf || 'CE').toString().toUpperCase().slice(0, 2);
 
     res.json({
       totalParticipants: results.totalParticipants,
+      uf,
       intentionLines: {
         presidente: results.president,
         governador: results.governor,
+        governadorUF: results.governor[uf] || [],
       },
       politicalKnowledgeIndex: results.politicalKnowledgeIndex,
       sectorEvaluation: results.sectorEvaluation,
+      sectorEvaluationUF:
+        (results.sectorEvaluationByState && results.sectorEvaluationByState[uf]) ||
+        Object.fromEntries(
+          Object.keys(results.sectorEvaluation || {}).map((k) => [k, 0])
+        ),
       recentSurveys: results.recentSurveys,
     });
   } catch (error) {
@@ -73,7 +60,7 @@ export const resetAllResults = async (req, res) => {
   if (process.env.NODE_ENV === 'production') {
     return res.status(403).json({ error: 'Indisponível em produção' });
   }
-  resetResults();
+  await resetResults();
   res.json({ message: 'Resultados zerados', totalParticipants: 0 });
 };
 

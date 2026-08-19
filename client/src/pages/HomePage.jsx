@@ -1,78 +1,22 @@
 import { apiFetch } from '../api';
 import { useAuth } from '../hooks/useAuth';
-import { CheckCircle2, Play } from 'lucide-react';
+import { Play } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import BrazilMap from '../components/BrazilMap';
 
-const UFS_BR = [
-  'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
-  'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO',
-];
-
-const BAR_COLORS = [
-  'bg-slate-800',
-  'bg-amber-500',
-  'bg-blue-600',
-  'bg-emerald-600',
-  'bg-rose-500',
-  'bg-violet-600',
-];
-
-function CandidateBars({ candidates, emptyLabel }) {
-  if (!candidates?.length) {
-    return (
-      <p className="text-sm text-slate-400 text-center py-8">
-        Nenhum candidato ativo no ADM
-      </p>
-    );
-  }
-
-  const hasVotes = candidates.some((c) => c.votes > 0);
-  const maxPercent = Math.max(...candidates.map((c) => c.percent), 1);
-
-  return (
-    <div>
-      <div className="flex items-end justify-center gap-4 md:gap-6 h-40 px-2">
-        {candidates.map((c, i) => {
-          const h = hasVotes ? Math.max(8, Math.round((c.percent / maxPercent) * 140)) : 8;
-          return (
-            <div key={c.id || c.name} className="flex flex-col items-center w-14 md:w-16">
-              <span className="text-sm font-bold text-slate-700 mb-1">{c.percent}%</span>
-              <div
-                className={`w-10 md:w-12 ${BAR_COLORS[i % BAR_COLORS.length]} rounded-t-md transition-all duration-500`}
-                style={{ height: `${h}px` }}
-                title={`${c.votes || 0} voto(s)`}
-              />
-            </div>
-          );
-        })}
-      </div>
-      <div className="flex flex-col items-center gap-1 mt-3 text-xs text-slate-600">
-        {candidates.map((c, i) => (
-          <span key={c.id || c.name} className="flex items-center gap-1.5">
-            <span className={`w-2.5 h-2.5 rounded-sm ${BAR_COLORS[i % BAR_COLORS.length]}`} />
-            {c.name}
-            {c.party ? ` (${c.party})` : ''}: {c.percent}%
-            {typeof c.votes === 'number' ? ` · ${c.votes} voto(s)` : ''}
-          </span>
-        ))}
-      </div>
-      {!hasVotes && (
-        <p className="text-center text-xs text-slate-400 mt-2">{emptyLabel}</p>
-      )}
-    </div>
-  );
-}
-
+/**
+ * HOME — mapa do Brasil + turno + iniciar pesquisa
+ * Gráficos ficam em /pesquisas
+ * Voto de presidente (na pesquisa) vai ao banco e soma na pesquisa NACIONAL
+ */
 export default function HomePage() {
   const { isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [hasVoted, setHasVoted] = useState(false);
-
+  const [respondents, setRespondents] = useState(0);
   const [selectedUF, setSelectedUF] = useState(
-    () => localStorage.getItem('xdenker_uf') || 'CE'
+    () => localStorage.getItem('xdenker_uf') || ''
   );
   const [selectedTurno, setSelectedTurno] = useState(
     () => localStorage.getItem('xdenker_turno') || '1'
@@ -80,42 +24,40 @@ export default function HomePage() {
 
   const userId = user?.userId || user?.id;
 
-  const fetchHomeData = async (ufToFetch, turnoToFetch) => {
-    try {
-      const uf = ufToFetch || selectedUF;
-      const turno = turnoToFetch || selectedTurno;
-
-      const res = await apiFetch(`/api/?uf=${uf}&turno=${turno}`);
-      const json = await res.json();
-      setData(json);
-
-      if (isAuthenticated && userId) {
-        const statusRes = await apiFetch('/api/research/status', {
-          headers: {
-            Authorization: 'Bearer temp',
-            'X-User-Id': userId,
-            'X-User-Name': user?.fullName || '',
-          },
-        });
-        if (statusRes.ok) {
-          const status = await statusRes.json();
-          setHasVoted(!!status.hasCompleted);
-        }
-      }
-    } catch (err) {
-      console.error('Erro ao carregar home:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchHomeData(selectedUF, selectedTurno);
-    const interval = setInterval(() => fetchHomeData(selectedUF, selectedTurno), 10000);
-    return () => clearInterval(interval);
+    const load = async () => {
+      try {
+        const uf = selectedUF || 'CE';
+        const res = await apiFetch(`/api/?uf=${uf}&turno=${selectedTurno}`);
+        const json = await res.json();
+        setRespondents(json?.methodology?.respondents ?? 0);
+
+        if (isAuthenticated && userId) {
+          const statusRes = await apiFetch('/api/research/status', {
+            headers: {
+              Authorization: 'Bearer temp',
+              'X-User-Id': userId,
+              'X-User-Name': user?.fullName || '',
+            },
+          });
+          if (statusRes.ok) {
+            const status = await statusRes.json();
+            setHasVoted(!!status.hasCompleted);
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    load();
   }, [isAuthenticated, userId, selectedUF, selectedTurno]);
 
-  const handleStartQuestionnaire = () => {
+  const handleSelectUF = (uf) => {
+    setSelectedUF(uf);
+    localStorage.setItem('xdenker_uf', uf);
+  };
+
+  const handleStart = () => {
     if (!isAuthenticated) {
       alert('Faça login para iniciar o questionário.');
       return;
@@ -124,155 +66,101 @@ export default function HomePage() {
       alert('Você já participou desta pesquisa.');
       return;
     }
-
+    if (!selectedUF) {
+      alert('Escolha um estado no mapa antes de iniciar a pesquisa.');
+      return;
+    }
     localStorage.setItem('xdenker_uf', selectedUF);
     localStorage.setItem('xdenker_turno', selectedTurno);
-
     navigate('/questionario');
   };
 
-  const president = data?.summaryCharts?.presidente || [];
-
-  // Extração exata baseada na UF selecionada no momento
-  const summary = data?.summaryCharts || {};
-  const president = summary.presidente || [];
-
-  // Pega os dados do governador de forma segura para a UF ativa
-  let governor = [];
-  const govData = summary.governador;
-  if (govData) {
-    if (typeof govData === 'object' && !Array.isArray(govData)) {
-      governor = govData[selectedUF] || govData['CE'] || [];
-    } else if (Array.isArray(govData)) {
-      governor = govData;
-    }
-  }
-
-  const respondents = data?.methodology?.respondents ?? 0;
-
-  if (loading && !data) {
-    return (
-      <div className="flex items-center justify-center min-h-[50vh]">
-        <div className="animate-pulse text-slate-400">Carregando pesquisa...</div>
-      </div>
-    );
-  }
-
   return (
-    <div className="bg-slate-50 min-h-screen pb-20">
-      <div className="text-center pt-6 pb-4 px-4">
+    <div className="bg-slate-50 min-h-screen pb-24">
+      <div className="text-center pt-5 pb-3 px-4">
         <h1 className="text-base md:text-lg font-bold tracking-wide text-slate-800 uppercase">
           Pesquisa Eleitoral — Eleições 2026
         </h1>
       </div>
 
-      <div className="px-4 md:px-8 mb-6 max-w-5xl mx-auto">
+      <div className="px-4 md:px-8 mb-4 max-w-5xl mx-auto">
         <div className="rounded-2xl overflow-hidden shadow-md">
           <img
             src="/banner.jpg"
-            alt="Sua Opinião Importa — Pesquisa Eleitoral 2026"
+            alt="Sua Opinião Importa"
             className="w-full h-auto object-cover aspect-[2.8/1] md:aspect-[3/1]"
           />
         </div>
       </div>
 
-      <div className="px-4 md:px-8 mb-6 max-w-5xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6">
-          <h2 className="text-base font-bold text-slate-800 mb-5">Intenção de Voto ({selectedTurno}º Turno)</h2>
+      <div className="px-4 md:px-8 mb-4 max-w-5xl mx-auto">
+        <BrazilMap selectedUF={selectedUF} onSelect={handleSelectUF} />
+      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-            <div>
-              <p className="text-sm font-semibold text-slate-500 mb-3 text-center">Presidente</p>
-              <CandidateBars candidates={president} emptyLabel="Aguardando primeiros votos" />
-            </div>
-
-            <div>
-              <p className="text-sm font-semibold text-slate-500 mb-3 text-center">
-                Governador ({selectedUF})
-              </p>
-              <CandidateBars candidates={governor} emptyLabel={`Aguardando votos em ${selectedUF}`} />
-            </div>
-
-            <div className="flex flex-col items-center justify-center text-center border-t md:border-t-0 md:border-l border-slate-100 pt-4 md:pt-0 md:pl-4">
-              <img src="/logo.png" alt="XDENKER" className="h-10 w-auto object-contain mb-3" />
-              <p className="text-xs font-semibold text-slate-500 mb-1">Metodologia</p>
-              <p className="text-sm text-slate-700">
-                Respondentes: <strong>{respondents.toLocaleString('pt-BR')}</strong>
-              </p>
-              <p className="text-xs text-slate-400 mt-1">
-                {respondents > 0
-                  ? `Margem de erro: ${data?.methodology?.marginOfError || '±1.5%'}`
-                  : 'Sem pesquisas ainda — percentuais em 0%'}
-              </p>
-            </div>
+      <div className="px-4 md:px-8 mb-4 max-w-5xl mx-auto">
+        <div className="grid grid-cols-3 gap-2 bg-white rounded-2xl border border-slate-100 p-3 shadow-sm">
+          <div className="text-center">
+            <p className="text-[10px] uppercase text-slate-400 font-semibold">Dados</p>
+            <p className="text-xs font-bold text-slate-700 mt-0.5">Tempo real</p>
+          </div>
+          <div className="text-center border-x border-slate-100">
+            <p className="text-[10px] uppercase text-slate-400 font-semibold">Respostas</p>
+            <p className="text-sm font-bold text-slate-800 mt-0.5">{respondents}</p>
+          </div>
+          <div className="text-center">
+            <p className="text-[10px] uppercase text-slate-400 font-semibold">Percentuais</p>
+            <p className="text-sm font-bold text-slate-800 mt-0.5">
+              {respondents > 0 ? 'Ativos' : '0%'}
+            </p>
           </div>
         </div>
       </div>
 
       <div className="px-4 md:px-8 max-w-5xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 md:p-6 flex flex-col md:flex-row md:items-center gap-4 justify-between">
-          <div>
-            <h2 className="text-sm font-bold tracking-wide text-slate-800 uppercase mb-1">
-              Participe da Pesquisa
-            </h2>
-            <p className="text-sm text-slate-500">
-              Sua voz define o futuro. Vote e ajude a construir o cenário político.
-            </p>
-            <p className="text-xs text-slate-400 mt-1">Totalmente confidencial</p>
-          </div>
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <h2 className="text-sm font-bold tracking-wide text-slate-800 uppercase mb-1">
+            Participe da pesquisa
+          </h2>
+          <p className="text-sm text-slate-500 mb-1">
+            Sua voz define o futuro. Vote e ajude a construir o cenário político.
+          </p>
+          <p className="text-xs text-slate-400 mb-4">Totalmente confidencial</p>
 
-          <div className="flex items-center gap-3 flex-wrap">
+          <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
             <select
               value={selectedTurno}
               onChange={(e) => {
-                const turno = e.target.value;
-                setSelectedTurno(turno);
-                localStorage.setItem('xdenker_turno', turno);
-                fetchHomeData(selectedUF, turno);
+                setSelectedTurno(e.target.value);
+                localStorage.setItem('xdenker_turno', e.target.value);
               }}
-              className="border-2 border-amber-400 rounded-lg px-3 py-2 text-sm font-semibold bg-white text-slate-800 min-w-[5.5rem]"
+              className="border-2 border-amber-400 rounded-xl px-3 py-2.5 text-sm font-semibold bg-white"
             >
               <option value="1">1º Turno</option>
               <option value="2">2º Turno</option>
             </select>
 
-            <label className="flex items-center gap-2 text-xs text-slate-600">
-              <span className="font-medium">Seu estado</span>
-              <select
-                value={selectedUF}
-                onChange={(e) => {
-                  const uf = e.target.value;
-                  setSelectedUF(uf);
-                  localStorage.setItem('xdenker_uf', uf);
-                  // Dispara a busca imediatamente com o novo estado selecionado
-                  fetchHomeData(uf, selectedTurno);
-                }}
-                className="border-2 border-amber-400 rounded-lg px-3 py-2 text-sm font-semibold bg-white text-slate-800 min-w-[4.5rem]"
-              >
-                {UFS_BR.map((uf) => (
-                  <option key={uf} value={uf}>
-                    {uf}
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            {hasVoted ? (
-              <div className="flex items-center gap-2 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-4 py-2.5 text-sm font-medium">
-                <CheckCircle2 size={18} />
-                Você já participou!
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={handleStartQuestionnaire}
-                className="inline-flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white font-semibold rounded-full px-5 py-2.5 text-sm transition-colors"
-              >
-                <Play size={16} fill="currentColor" />
-                Iniciar Questionário
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={handleStart}
+              disabled={hasVoted || !selectedUF}
+              className="inline-flex items-center justify-center gap-2 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-white font-semibold rounded-full px-6 py-3 text-sm flex-1"
+            >
+              <Play size={16} fill="currentColor" />
+              {hasVoted ? 'Você já participou' : 'Iniciar Questionário'}
+            </button>
           </div>
+
+          {!selectedUF ? (
+            <p className="text-xs text-amber-600 mt-3">
+              Toque em um estado no mapa para liberar o botão de iniciar a pesquisa.
+            </p>
+          ) : (
+            <p className="text-xs text-slate-500 mt-3">
+              Pesquisa para <strong>{selectedUF}</strong>
+              {selectedTurno === '2' ? ' · 2º turno' : ' · 1º turno'}.
+              Gráficos em <strong>Pesquisas</strong>.
+            </p>
+          )}
         </div>
       </div>
     </div>
