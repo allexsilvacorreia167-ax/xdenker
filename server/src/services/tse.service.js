@@ -20,6 +20,7 @@ const ELECTION_CODES = {
   // 544 = geral (presidente); 546 = estadual 2022
   2022: { ciclo: 'ele2022', codigo: '544', codigoEstadual: '546', codigo2t: '545' },
   2024: { ciclo: 'ele2024', codigo: '619' },
+  2026: { ciclo: 'ele2026', codigo: '203220026', codigoEstadual: '203220026' },
 };
 
 export const CARGO_CODES = {
@@ -125,7 +126,11 @@ async function fromResultados(year, uf, cargoCode) {
 
 /** Tentativa DivulgaCandContas */
 async function fromDivulga(year, uf, cargoCode) {
-  const path = `/candidatura/listar/${year}/${uf.toUpperCase()}/${cargoCode}/candidatos`;
+  const meta = ELECTION_CODES[year];
+  const eleCode = meta ? meta.codigo : year; // Usa o código mapeado (ex: 203220026) se existir
+
+  // Rota corrigida com base no padrão capturado no Network do TSE
+  const path = `/candidatura/listar/${eleCode}/${uf.toUpperCase()}/${cargoCode}/candidatos`;
   const raw = await httpJson(`${DIVULGA_BASE}${path}`);
   let list = [];
   if (Array.isArray(raw)) list = raw;
