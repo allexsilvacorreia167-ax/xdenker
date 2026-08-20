@@ -38,7 +38,7 @@ function calcPercent(votes, total) {
   return Math.round((votes / total) * 100);
 }
 
-function aggregateFromRows(rows) {
+async function aggregateFromRows(rows) {
   const presidentVoteCounts = {};
   const governorVoteCounts = {};
   const sectorSum = Object.fromEntries(SECTOR_KEYS.map((k) => [k, 0]));
@@ -74,45 +74,50 @@ function aggregateFromRows(rows) {
   });
 
   const totalParticipants = rows.length;
-  const presCandidates = getPresidentCandidates(true);
+  const presCandidates = await getPresidentCandidates(true);
   const totalPresVotes = Object.values(presidentVoteCounts).reduce((s, v) => s + v, 0);
 
-  const president = presCandidates.map((c) => {
-    const votes = presidentVoteCounts[c.id] || 0;
-    return {
-      id: c.id,
-      name: c.name,
-      party: c.party,
-      number: c.number,
-      votes,
-      percent: calcPercent(votes, totalPresVotes),
-      spectrum: getSpectrumForParty(c.party),
-    };
-  });
-
-  const governorByState = {};
-  // Todas as UFs com candidatos no ADM + UFs que já receberam voto
-  const ufs = new Set([
-    ...getAllGovernorUFs(),
-    ...Object.keys(governorVoteCounts),
-  ]);
-  ufs.forEach((uf) => {
-    const candidates = getGovernorCandidates(uf, true);
-    const counts = governorVoteCounts[uf] || {};
-    const totalGovVotes = Object.values(counts).reduce((s, v) => s + v, 0);
-    governorByState[uf] = candidates.map((c) => {
-      const votes = counts[c.id] || 0;
+  const president = await Promise.all(
+    presCandidates.map(async (c) => {
+      const votes = presidentVoteCounts[c.id] || 0;
       return {
         id: c.id,
         name: c.name,
         party: c.party,
         number: c.number,
         votes,
-        percent: calcPercent(votes, totalGovVotes),
-        spectrum: getSpectrumForParty(c.party),
+        percent: calcPercent(votes, totalPresVotes),
+        spectrum: await getSpectrumForParty(c.party),
       };
-    });
-  });
+    })
+  );
+
+  const governorByState = {};
+  // Todas as UFs com candidatos no ADM + UFs que já receberam voto
+  const registeredUFs = await getAllGovernorUFs();
+  const ufs = new Set([...registeredUFs, ...Object.keys(governorVoteCounts)]);
+
+  await Promise.all(
+    [...ufs].map(async (uf) => {
+      const candidates = await getGovernorCandidates(uf, true);
+      const counts = governorVoteCounts[uf] || {};
+      const totalGovVotes = Object.values(counts).reduce((s, v) => s + v, 0);
+      governorByState[uf] = await Promise.all(
+        candidates.map(async (c) => {
+          const votes = counts[c.id] || 0;
+          return {
+            id: c.id,
+            name: c.name,
+            party: c.party,
+            number: c.number,
+            votes,
+            percent: calcPercent(votes, totalGovVotes),
+            spectrum: await getSpectrumForParty(c.party),
+          };
+        })
+      );
+    })
+  );
 
   const sectorScores = {};
   SECTOR_KEYS.forEach((key) => {
@@ -145,6 +150,9 @@ function aggregateFromRows(rows) {
       stateUF: r.state_uf,
       coherenceScore: r.coherence_score,
       knowledgePercent: r.knowledge_percent,
+      depFederal: r.dep_federal_name ? { name: r.dep_federal_name, party: r.dep_federal_party } : null,
+      depEstadual: r.dep_estadual_name ? { name: r.dep_estadual_name, party: r.dep_estadual_party } : null,
+      senador: r.senador_name ? { name: r.senador_name, party: r.senador_party } : null,
       at: r.created_at,
     }));
 
@@ -171,6 +179,12 @@ async function fetchAllResponses() {
       sector_answers: s.sectorAnswers || {},
       coherence_score: s.coherenceScore || 0,
       knowledge_percent: s.knowledgePercent || 0,
+      dep_federal_name: s.depFederalName || null,
+      dep_federal_party: s.depFederalParty || null,
+      dep_estadual_name: s.depEstadualName || null,
+      dep_estadual_party: s.depEstadualParty || null,
+      senador_name: s.senadorName || null,
+      senador_party: s.senadorParty || null,
       created_at: s.at,
     }));
   }
@@ -197,6 +211,12 @@ export async function registerSurveyResult(payload) {
     governorId,
     stateUF = 'CE',
     coherenceScore = 0,
+    depFederalName = null,
+    depFederalParty = null,
+    depEstadualName = null,
+    depEstadualParty = null,
+    senadorName = null,
+    senadorParty = null,
   } = payload;
 
   if (!userId) {
@@ -231,6 +251,12 @@ export async function registerSurveyResult(payload) {
         sector_answers: sectorAnswers,
         coherence_score: coherenceScore,
         knowledge_percent: knowledgePercent,
+        dep_federal_name: depFederalName,
+        dep_federal_party: depFederalParty,
+        dep_estadual_name: depEstadualName,
+        dep_estadual_party: depEstadualParty,
+        senador_name: senadorName,
+        senador_party: senadorParty,
       },
     ]);
 
@@ -263,6 +289,12 @@ export async function registerSurveyResult(payload) {
     knowledgePercent,
     sectorAnswers,
     institutionalAnswers,
+    depFederalName,
+    depFederalParty,
+    depEstadualName,
+    depEstadualParty,
+    senadorName,
+    senadorParty,
     at: new Date().toISOString(),
   });
 
@@ -276,10 +308,10 @@ export async function registerSurveyResult(payload) {
 export async function getAggregatedResults() {
   try {
     const rows = await fetchAllResponses();
-    return aggregateFromRows(rows);
+    return await aggregateFromRows(rows);
   } catch (e) {
     console.error('[results] aggregate', e);
-    return aggregateFromRows([]);
+    return await aggregateFromRows([]);
   }
 }
 

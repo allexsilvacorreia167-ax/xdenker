@@ -1,13 +1,15 @@
-import { v4 as uuidv4 } from 'uuid';
+import { supabase, supabaseConfigured } from '../lib/supabase.js';
 
 /**
  * Fluxo de autenticação conforme especificação:
  * 1. Usuário informa Nome Completo + E-mail
  * 2. Sistema gera/solicita Token TKN-XXXX-XXXX
  * 3. Após validação, sessão é criada
+ *
+ * Persistência: tabela app_users no Supabase.
+ * Fallback em memória apenas se Supabase estiver offline (não recomendado em produção).
  */
 
-// Em produção: usar tabela users + tokens no PostgreSQL
 const mockUsers = new Map();
 
 function generateToken() {
@@ -24,32 +26,76 @@ export const login = async (req, res) => {
       return res.status(400).json({ error: 'Nome completo e e-mail são obrigatórios' });
     }
 
-    // Verifica se usuário já existe
-    let user = [...mockUsers.values()].find(u => u.email === email.toLowerCase());
+    const normalizedEmail = email.toLowerCase().trim();
 
+    if (supabaseConfigured && supabase) {
+      const { data: existing, error: findErr } = await supabase
+        .from('app_users')
+        .select('*')
+        .eq('email', normalizedEmail)
+        .maybeSingle();
+
+      if (findErr) {
+        console.error('[auth] login lookup', findErr);
+        return res.status(500).json({ error: 'Erro ao buscar usuário' });
+      }
+
+      let user = existing;
+
+      if (!user) {
+        const token = generateToken();
+        const { data: created, error: insErr } = await supabase
+          .from('app_users')
+          .insert([
+            {
+              full_name: fullName,
+              email: normalizedEmail,
+              token,
+              token_used: false,
+              has_completed_survey: false,
+            },
+          ])
+          .select()
+          .single();
+
+        if (insErr) {
+          console.error('[auth] login insert', insErr);
+          return res.status(500).json({ error: 'Erro ao criar usuário' });
+        }
+        user = created;
+      }
+
+      return res.json({
+        message: 'Token gerado. Informe o Token de Acesso.',
+        requiresToken: true,
+        // Em produção real o token seria enviado por e-mail
+        debugToken: user.token,
+      });
+    }
+
+    // Fallback em memória
+    let user = [...mockUsers.values()].find((u) => u.email === normalizedEmail);
     if (!user) {
       const token = generateToken();
       user = {
-        id: uuidv4(),
+        id: crypto.randomUUID(),
         fullName,
-        email: email.toLowerCase(),
+        email: normalizedEmail,
         token,
         tokenUsed: false,
         hasCompletedSurvey: false,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
       mockUsers.set(user.id, user);
     }
 
-    // Retorna solicitação de token (caixa flutuante no front)
     res.json({
-      message: 'Token gerado. Informe o Token de Acesso.',
+      message: 'Token gerado. Informe o Token de Acesso. (modo offline — configure Supabase)',
       requiresToken: true,
-      // Em produção real o token seria enviado por e-mail
-      // Por enquanto retornamos para facilitar testes locais
-      debugToken: user.token
+      debugToken: user.token,
     });
   } catch (error) {
+    console.error('[auth] login', error);
     res.status(500).json({ error: 'Erro no login' });
   }
 };
@@ -62,8 +108,45 @@ export const verifyToken = async (req, res) => {
       return res.status(400).json({ error: 'E-mail e token são obrigatórios' });
     }
 
+    const normalizedEmail = email.toLowerCase().trim();
+    const normalizedToken = token.toUpperCase().trim();
+
+    if (supabaseConfigured && supabase) {
+      const { data: user, error: findErr } = await supabase
+        .from('app_users')
+        .select('*')
+        .eq('email', normalizedEmail)
+        .eq('token', normalizedToken)
+        .maybeSingle();
+
+      if (findErr) {
+        console.error('[auth] verifyToken lookup', findErr);
+        return res.status(500).json({ error: 'Erro na verificação do token' });
+      }
+
+      if (!user) {
+        return res.status(401).json({ error: 'Token inválido' });
+      }
+
+      await supabase.from('app_users').update({ token_used: true }).eq('id', user.id);
+
+      const session = {
+        userId: user.id,
+        id: user.id,
+        fullName: user.full_name,
+        email: user.email,
+        hasCompletedSurvey: user.has_completed_survey,
+      };
+
+      return res.json({
+        message: 'Login realizado com sucesso',
+        user: session,
+      });
+    }
+
+    // Fallback em memória
     const user = [...mockUsers.values()].find(
-      u => u.email === email.toLowerCase() && u.token === token.toUpperCase()
+      (u) => u.email === normalizedEmail && u.token === normalizedToken
     );
 
     if (!user) {
@@ -72,19 +155,20 @@ export const verifyToken = async (req, res) => {
 
     user.tokenUsed = true;
 
-    // Em produção: gerar JWT
     const session = {
       userId: user.id,
+      id: user.id,
       fullName: user.fullName,
       email: user.email,
-      hasCompletedSurvey: user.hasCompletedSurvey
+      hasCompletedSurvey: user.hasCompletedSurvey,
     };
 
     res.json({
-      message: 'Login realizado com sucesso',
-      user: session
+      message: 'Login realizado com sucesso (modo offline — configure Supabase)',
+      user: session,
     });
   } catch (error) {
+    console.error('[auth] verifyToken', error);
     res.status(500).json({ error: 'Erro na verificação do token' });
   }
 };

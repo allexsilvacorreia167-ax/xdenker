@@ -23,9 +23,22 @@ export const startQuestionnaire = async (req, res) => {
 
     const stateUF = (req.body?.stateUF || req.query?.uf || 'CE').toString().toUpperCase().slice(0, 2);
 
-    const questions = getInstitutionalQuestions(true);
-    const presidents = getPresidentCandidates(true);
-    const governors = getGovernorCandidates(stateUF, true);
+    const questions = await getInstitutionalQuestions(true);
+    const presidents = await getPresidentCandidates(true);
+    const governors = await getGovernorCandidates(stateUF, true);
+
+    const presidentsWithSpectrum = await Promise.all(
+      presidents.map(async (c) => ({
+        id: c.id, name: c.name, party: c.party, number: c.number,
+        spectrum: await getSpectrumForParty(c.party),
+      }))
+    );
+    const governorsWithSpectrum = await Promise.all(
+      governors.map(async (c) => ({
+        id: c.id, name: c.name, party: c.party, number: c.number,
+        spectrum: await getSpectrumForParty(c.party),
+      }))
+    );
 
     res.json({
       message: 'Questionário iniciado',
@@ -46,14 +59,8 @@ export const startQuestionnaire = async (req, res) => {
           { key: 'combateCorrupcao', text: 'Como você avalia o combate à corrupção no país?' },
         ],
         candidates: {
-          president: presidents.map((c) => ({
-            id: c.id, name: c.name, party: c.party, number: c.number,
-            spectrum: getSpectrumForParty(c.party),
-          })),
-          governor: governors.map((c) => ({
-            id: c.id, name: c.name, party: c.party, number: c.number,
-            spectrum: getSpectrumForParty(c.party),
-          })),
+          president: presidentsWithSpectrum,
+          governor: governorsWithSpectrum,
         },
       },
       // gabarito só no servidor — usado no calculate
@@ -81,10 +88,11 @@ export const submitStage = async (req, res) => {
 export const getQuestionnaireStatus = async (req, res) => {
   try {
     const userId = req.user?.id || 'anonymous';
+    const voted = await hasUserVoted(userId);
     res.json({
-      hasStarted: await hasUserVoted(userId),
+      hasStarted: voted,
       currentStage: null,
-      hasCompleted: await hasUserVoted(userId),
+      hasCompleted: voted,
     });
   } catch (error) {
     res.status(500).json({ error: 'Erro ao buscar status' });
@@ -96,6 +104,7 @@ export const getQuestionnaireStatus = async (req, res) => {
  * - Acertos nas perguntas institucionais (ADM)
  * - Espectro do partido do Presidente vs Governador (ADM)
  * - Cruzamento ideológico
+ * - Também registra Deputado Federal, Estadual e Senador (nome + sigla)
  */
 export const calculateCoherence = async (req, res) => {
   try {
@@ -105,6 +114,9 @@ export const calculateCoherence = async (req, res) => {
       presidentId,
       governorId,
       stateUF = 'CE',
+      depFederal = null,   // { name, party }
+      depEstadual = null,  // { name, party }
+      senador = null,      // { name, party }
     } = req.body;
 
     const userId = req.user?.id || `user-${Date.now()}`;
@@ -115,7 +127,7 @@ export const calculateCoherence = async (req, res) => {
     }
 
     // Gabarito dinâmico do ADM
-    const questions = getInstitutionalQuestions(true);
+    const questions = await getInstitutionalQuestions(true);
     const correctMap = Object.fromEntries(questions.map((q) => [q.id, q.correctAnswer]));
 
     const evaluated = institutionalAnswers.map((a) => ({
@@ -127,13 +139,18 @@ export const calculateCoherence = async (req, res) => {
     const knowledgePercent = Math.round((correctCount / totalQuestions) * 100);
 
     // Candidatos e espectro (do ADM)
-    const presidents = getPresidentCandidates(true);
-    const governors = getGovernorCandidates(stateUF, true);
+    const presidents = await getPresidentCandidates(true);
+    const governors = await getGovernorCandidates(stateUF, true);
     const pres = presidents.find((c) => c.id === presidentId);
     const gov = governors.find((c) => c.id === governorId);
 
-    const presSpectrum = pres ? getSpectrumForParty(pres.party) : 'Centro';
-    const govSpectrum = gov ? getSpectrumForParty(gov.party) : 'Centro';
+    const presSpectrum = pres ? await getSpectrumForParty(pres.party) : 'Centro';
+    const govSpectrum = gov ? await getSpectrumForParty(gov.party) : 'Centro';
+
+    // Espectro dos legislativos (sigla escolhida manualmente pelo usuário)
+    const depFederalSpectrum = depFederal?.party ? await getSpectrumForParty(depFederal.party) : null;
+    const depEstadualSpectrum = depEstadual?.party ? await getSpectrumForParty(depEstadual.party) : null;
+    const senadorSpectrum = senador?.party ? await getSpectrumForParty(senador.party) : null;
 
     // Escala numérica do espectro
     const SPECTRUM_SCORE = {
@@ -145,7 +162,16 @@ export const calculateCoherence = async (req, res) => {
     };
     const presScore = SPECTRUM_SCORE[presSpectrum] || 3;
     const govScore = SPECTRUM_SCORE[govSpectrum] || 3;
-    const spectrumDistance = Math.abs(presScore - govScore);
+
+    // Inclui legislativos no cálculo de coerência ideológica, quando preenchidos
+    const legislativeScores = [depFederalSpectrum, depEstadualSpectrum, senadorSpectrum]
+      .filter(Boolean)
+      .map((s) => SPECTRUM_SCORE[s] || 3);
+
+    const allScores = [presScore, govScore, ...legislativeScores];
+    const avgScore = allScores.reduce((s, v) => s + v, 0) / allScores.length;
+    const spectrumDistance =
+      allScores.reduce((sum, v) => sum + Math.abs(v - avgScore), 0) / allScores.length;
 
     // Coerência: 70% conhecimento + 30% alinhamento ideológico (distância 0 = max)
     const alignmentBonus = Math.max(0, 30 - spectrumDistance * 10);
@@ -161,6 +187,12 @@ export const calculateCoherence = async (req, res) => {
       institutionalAnswers: evaluated,
       sectorAnswers,
       presidentId, governorId, stateUF, coherenceScore,
+      depFederalName: depFederal?.name || null,
+      depFederalParty: depFederal?.party || null,
+      depEstadualName: depEstadual?.name || null,
+      depEstadualParty: depEstadual?.party || null,
+      senadorName: senador?.name || null,
+      senadorParty: senador?.party || null,
     });
 
     if (!result.ok) return res.status(400).json({ error: result.error });
@@ -176,6 +208,9 @@ export const calculateCoherence = async (req, res) => {
       spectrum: {
         president: { party: pres?.party, spectrum: presSpectrum },
         governor: { party: gov?.party, spectrum: govSpectrum },
+        depFederal: depFederal ? { party: depFederal.party, spectrum: depFederalSpectrum } : null,
+        depEstadual: depEstadual ? { party: depEstadual.party, spectrum: depEstadualSpectrum } : null,
+        senador: senador ? { party: senador.party, spectrum: senadorSpectrum } : null,
         aligned: spectrumDistance <= 1,
       },
       choices: { president: presidentId, governor: governorId },
