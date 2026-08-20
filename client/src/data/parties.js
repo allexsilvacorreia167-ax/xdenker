@@ -37,6 +37,7 @@ export const ALL_PARTIES = [
     { sigla: 'MOBILIZA', nome: 'Mobiliza' },
     { sigla: 'PRD', nome: 'Partido Renovação Democrática' },
     { sigla: 'MISSÃO', nome: 'Partido Missão' },
+    { sigla: 'PSTU', nome: 'Partido Socialista Dos Trabalhadores Unificado' },
 ];
 
 export const SPECTRUM_OPTIONS = [

@@ -268,25 +268,37 @@ export async function deleteGovernorCandidate(uf, id) {
 }
 
 export async function updateQuestions(questions) {
-  const normalized = questions.map((q, i) => ({
-    id: q.id || i + 1,
-    text: q.text,
-    correct_answer: Boolean(q.correctAnswer),
-    active: q.active !== false,
-  }));
+  const normalized = questions.map((q, i) => {
+    // Se o id for um número muito grande (Date.now), ignora e usa índice
+    const safeId = (typeof q.id === 'number' && q.id < 2147483647) ? q.id : i + 1;
+
+    return {
+      id: safeId,
+      text: q.text,
+      correct_answer: Boolean(q.correctAnswer),
+      active: q.active !== false,
+    };
+  });
 
   if (!supabaseConfigured || !supabase) {
     mem.institutionalQuestions = normalized.map((q) => ({
-      id: q.id, text: q.text, correctAnswer: q.correct_answer, active: q.active,
+      id: q.id,
+      text: q.text,
+      correctAnswer: q.correct_answer,
+      active: q.active,
     }));
     return getInstitutionalQuestions(false);
   }
 
-  const { error } = await supabase.from('institutional_questions').upsert(normalized, { onConflict: 'id' });
+  const { error } = await supabase
+    .from('institutional_questions')
+    .upsert(normalized, { onConflict: 'id' });
+
   if (error) {
     console.error('[admin.store] updateQuestions', error);
     throw error;
   }
+
   return getInstitutionalQuestions(false);
 }
 
