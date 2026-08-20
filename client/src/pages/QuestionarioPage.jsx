@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../hooks/useAuth';
-import TseAutocomplete from '../components/TseAutocomplete';
 import { apiFetch } from '../api';
+import { ALL_PARTIES } from '../data/parties';
+import { getTseLink } from '../data/tseLinks';
 
 const SCALE = ['Ruim', 'Médio', 'Bom', 'Excelente'];
 const SCALE_COLORS = {
@@ -11,6 +12,12 @@ const SCALE_COLORS = {
   Bom: 'bg-blue-200 text-blue-900',
   Excelente: 'bg-green-200 text-green-900',
 };
+
+const LEGISLATIVE_FIELDS = [
+  { key: 'depFederal', label: 'Deputado Federal' },
+  { key: 'depEstadual', label: 'Deputado Estadual' },
+  { key: 'senador', label: 'Senador' },
+];
 
 export default function QuestionarioPage() {
   const selectedUF = localStorage.getItem('xdenker_uf') || 'CE';
@@ -24,11 +31,22 @@ export default function QuestionarioPage() {
   const [sectors, setSectors] = useState({});
   const [presidentId, setPresidentId] = useState(null);
   const [governorId, setGovernorId] = useState(null);
-  const [depFederal, setDepFederal] = useState(null);
-  const [depEstadual, setDepEstadual] = useState(null);
-  const [senador, setSenador] = useState(null);
+
+  // Campos manuais: { name, party }
+  const [depFederal, setDepFederal] = useState({ name: '', party: '' });
+  const [depEstadual, setDepEstadual] = useState({ name: '', party: '' });
+  const [senador, setSenador] = useState({ name: '', party: '' });
+
   const [result, setResult] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const tseLink = getTseLink(selectedUF);
+
+  const legislativeSetters = {
+    depFederal: [depFederal, setDepFederal],
+    depEstadual: [depEstadual, setDepEstadual],
+    senador: [senador, setSenador],
+  };
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -67,11 +85,26 @@ export default function QuestionarioPage() {
       });
   }, [isAuthenticated, navigate, selectedUF, selectedTurno]);
 
+  const isLegislativeComplete = (field) => field.name.trim() && field.party;
+
   const handleFinish = async () => {
     if (!presidentId || !governorId) {
       alert('Selecione Presidente e Governador.');
       return;
     }
+    if (!isLegislativeComplete(depFederal)) {
+      alert('Preencha o nome e o partido do Deputado Federal.');
+      return;
+    }
+    if (!isLegislativeComplete(depEstadual)) {
+      alert('Preencha o nome e o partido do Deputado Estadual.');
+      return;
+    }
+    if (!isLegislativeComplete(senador)) {
+      alert('Preencha o nome e o partido do Senador.');
+      return;
+    }
+
     setSubmitting(true);
     try {
       const institutionalAnswers = Object.entries(institutional).map(([id, answer]) => ({
@@ -94,6 +127,9 @@ export default function QuestionarioPage() {
           governorId,
           stateUF: selectedUF,
           turno: selectedTurno,
+          depFederal: { name: depFederal.name.trim(), party: depFederal.party },
+          depEstadual: { name: depEstadual.name.trim(), party: depEstadual.party },
+          senador: { name: senador.name.trim(), party: senador.party },
         }),
       });
       const data = await res.json();
@@ -159,6 +195,18 @@ export default function QuestionarioPage() {
             <div className="flex justify-between border-b border-slate-100 pb-2">
               <span className="text-slate-400 uppercase text-xs">Governador</span>
               <span className="font-medium">{govName}</span>
+            </div>
+            <div className="flex justify-between border-b border-slate-100 pb-2">
+              <span className="text-slate-400 uppercase text-xs">Dep. Federal</span>
+              <span className="font-medium">{depFederal.name} ({depFederal.party})</span>
+            </div>
+            <div className="flex justify-between border-b border-slate-100 pb-2">
+              <span className="text-slate-400 uppercase text-xs">Dep. Estadual</span>
+              <span className="font-medium">{depEstadual.name} ({depEstadual.party})</span>
+            </div>
+            <div className="flex justify-between border-b border-slate-100 pb-2">
+              <span className="text-slate-400 uppercase text-xs">Senador</span>
+              <span className="font-medium">{senador.name} ({senador.party})</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400 uppercase text-xs">Acertos competência</span>
@@ -342,7 +390,7 @@ export default function QuestionarioPage() {
               </div>
             </div>
 
-            <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm mb-6">
+            <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm mb-4">
               <p className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
                 📍 Governador ({selectedUF})
               </p>
@@ -373,36 +421,61 @@ export default function QuestionarioPage() {
               </div>
             </div>
 
-            {/* Autocomplete TSE — legislativos */}
-            <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm mb-4 space-y-4">
-              <p className="text-sm font-semibold text-slate-700">Legislativo (base TSE)</p>
-              <TseAutocomplete
-                label="Deputado Federal"
-                cargo="deputado_federal"
-                uf={selectedUF}
-                year={2026}
-                value={depFederal}
-                onChange={setDepFederal}
-              />
-              <TseAutocomplete
-                label="Deputado Estadual"
-                cargo="deputado_estadual"
-                uf={selectedUF}
-                year={2026}
-                value={depEstadual}
-                onChange={setDepEstadual}
-              />
-              <TseAutocomplete
-                label="Senador"
-                cargo="senador"
-                uf={selectedUF}
-                year={2026}
-                value={senador}
-                onChange={setSenador}
-              />
-              <p className="text-xs text-slate-400">
-                Dados oficiais via DivulgaCandContas (TSE). Em caso de indisponibilidade, usa cache local.
+            {/* Legislativo — preenchimento manual (nome + sigla) com atalho para o TSE */}
+            <div className="bg-white rounded-xl border border-slate-100 p-4 shadow-sm mb-6 space-y-5">
+              <div className="flex items-center justify-between">
+                <p className="text-sm font-semibold text-slate-700">
+                  Legislativo ({selectedUF})
+                </p>
+                {tseLink && (
+                  <a
+                    href={tseLink}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs font-medium text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Ver candidatos no TSE ↗
+                  </a>
+                )}
+              </div>
+              <p className="text-xs text-slate-400 -mt-3">
+                Consulte o candidato no site do TSE, depois preencha o nome e selecione o partido abaixo.
+                O que você digitou aqui continua salvo mesmo se você sair e voltar do link.
               </p>
+
+              {LEGISLATIVE_FIELDS.map(({ key, label }) => {
+                const [value, setValue] = legislativeSetters[key];
+                return (
+                  <div key={key} className="border-t border-slate-100 pt-4 first:border-t-0 first:pt-0">
+                    <p className="text-sm font-medium text-slate-700 mb-2">{label}</p>
+                    <div className="space-y-2">
+                      <input
+                        type="text"
+                        placeholder={`Nome do candidato a ${label}`}
+                        value={value.name}
+                        onChange={(e) =>
+                          setValue((prev) => ({ ...prev, name: e.target.value }))
+                        }
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                      <select
+                        value={value.party}
+                        onChange={(e) =>
+                          setValue((prev) => ({ ...prev, party: e.target.value }))
+                        }
+                        className="w-full border border-slate-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+                      >
+                        <option value="">Selecione o partido</option>
+                        {ALL_PARTIES.map((p) => (
+                          <option key={p.sigla} value={p.sigla}>
+                            {p.sigla} — {p.nome}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
 
             <div className="flex gap-3">
