@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import publicRoutes from './routes/public.routes.js';
 import adminRoutes from './routes/admin.routes.js';
 import authRoutes from './routes/auth.routes.js';
+import adminAuthRoutes from './routes/adminAuth.routes.js';
 import researchRoutes from './routes/research.routes.js';
 import tseRoutes from './routes/tse.routes.js';
 
@@ -27,6 +28,7 @@ app.get('/api/health', (req, res) => {
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/admin-auth', adminAuthRoutes);
 app.use('/api', publicRoutes);
 app.use('/api/research', researchRoutes);
 app.use('/api/admin', adminRoutes);
@@ -44,5 +46,5 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`🚀 XDENKER Server rodando em http://localhost:${PORT}`);
+  console.log(`✌️😎 XDENKER Server rodando em http://localhost:${PORT}`);
 });

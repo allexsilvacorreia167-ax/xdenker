@@ -7,6 +7,7 @@ import BlogPage from './pages/BlogPage';
 import ContatoPage from './pages/ContatoPage';
 import MetodologiaPage from './pages/MetodologiaPage';
 import QuestionarioPage from './pages/QuestionarioPage';
+import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminCandidatos from './pages/admin/AdminCandidatos';
 import AdminPerguntas from './pages/admin/AdminPerguntas';
@@ -14,29 +15,35 @@ import AdminEspectro from './pages/admin/AdminEspectro';
 import AdminUsuarios from './pages/admin/AdminUsuarios';
 import AdminBlog from './pages/admin/AdminBlog';
 import { AuthProvider } from './hooks/useAuth';
+import { AdminAuthProvider } from './hooks/useAdminAuth';
 
 function App() {
   return (
     <AuthProvider>
-      <Routes>
-        <Route element={<ResponsiveUserLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/pesquisas" element={<PesquisasPage />} />
-          <Route path="/blog" element={<BlogPage />} />
-          <Route path="/contato" element={<ContatoPage />} />
-          <Route path="/metodologia" element={<MetodologiaPage />} />
-          <Route path="/questionario" element={<QuestionarioPage />} />
-        </Route>
+      <AdminAuthProvider>
+        <Routes>
+          <Route element={<ResponsiveUserLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/pesquisas" element={<PesquisasPage />} />
+            <Route path="/blog" element={<BlogPage />} />
+            <Route path="/contato" element={<ContatoPage />} />
+            <Route path="/metodologia" element={<MetodologiaPage />} />
+            <Route path="/questionario" element={<QuestionarioPage />} />
+          </Route>
 
-        <Route path="/html/adm" element={<AdminDesktopLayout />}>
-          <Route index element={<AdminDashboard />} />
-          <Route path="candidatos" element={<AdminCandidatos />} />
-          <Route path="perguntas" element={<AdminPerguntas />} />
-          <Route path="espectro" element={<AdminEspectro />} />
-          <Route path="blog" element={<AdminBlog />} />
-          <Route path="usuarios" element={<AdminUsuarios />} />
-        </Route>
-      </Routes>
+          {/* Login do admin fica fora do layout protegido, senão criaria loop de redirecionamento */}
+          <Route path="/html/adm/login" element={<AdminLoginPage />} />
+
+          <Route path="/html/adm" element={<AdminDesktopLayout />}>
+            <Route index element={<AdminDashboard />} />
+            <Route path="candidatos" element={<AdminCandidatos />} />
+            <Route path="perguntas" element={<AdminPerguntas />} />
+            <Route path="espectro" element={<AdminEspectro />} />
+            <Route path="blog" element={<AdminBlog />} />
+            <Route path="usuarios" element={<AdminUsuarios />} />
+          </Route>
+        </Routes>
+      </AdminAuthProvider>
     </AuthProvider>
   );
 }

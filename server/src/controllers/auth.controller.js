@@ -1,13 +1,12 @@
 import { supabase, supabaseConfigured } from '../lib/supabase.js';
+import { sendTokenEmail } from '../lib/email.js';
+import { signUserToken } from '../lib/jwt.js';
 
 /**
- * Fluxo de autenticação conforme especificação:
+ * Fluxo de autenticação:
  * 1. Usuário informa Nome Completo + E-mail
- * 2. Sistema gera/solicita Token TKN-XXXX-XXXX
- * 3. Após validação, sessão é criada
- *
- * Persistência: tabela app_users no Supabase.
- * Fallback em memória apenas se Supabase estiver offline (não recomendado em produção).
+ * 2. Sistema gera token TKN-XXXX-XXXX e envia por e-mail (Resend)
+ * 3. Usuário informa o token recebido → sistema valida e emite um JWT de sessão
  */
 
 const mockUsers = new Map();
@@ -63,17 +62,43 @@ export const login = async (req, res) => {
           return res.status(500).json({ error: 'Erro ao criar usuário' });
         }
         user = created;
+      } else {
+        // Já existe: gera um novo token a cada tentativa de login (mais seguro que reusar)
+        const newToken = generateToken();
+        const { data: updated, error: updErr } = await supabase
+          .from('app_users')
+          .update({ token: newToken, token_used: false })
+          .eq('id', user.id)
+          .select()
+          .single();
+
+        if (updErr) {
+          console.error('[auth] login refresh token', updErr);
+          return res.status(500).json({ error: 'Erro ao gerar novo token' });
+        }
+        user = updated;
       }
 
-      return res.json({
-        message: 'Token gerado. Informe o Token de Acesso.',
-        requiresToken: true,
-        // Em produção real o token seria enviado por e-mail
-        debugToken: user.token,
+      const emailResult = await sendTokenEmail({
+        to: user.email,
+        fullName: user.full_name,
+        token: user.token,
       });
+
+      const response = { message: 'Token gerado e enviado por e-mail.', requiresToken: true };
+
+      // Em dev, ou se o e-mail falhar (ex: sandbox do Resend), mostra o token na tela como fallback
+      if (process.env.NODE_ENV !== 'production' || !emailResult.ok) {
+        response.debugToken = user.token;
+        if (!emailResult.ok) {
+          response.emailWarning = 'Não foi possível enviar o e-mail. Token exibido para teste.';
+        }
+      }
+
+      return res.json(response);
     }
 
-    // Fallback em memória
+    // Fallback em memória (sem Supabase)
     let user = [...mockUsers.values()].find((u) => u.email === normalizedEmail);
     if (!user) {
       const token = generateToken();
@@ -90,7 +115,7 @@ export const login = async (req, res) => {
     }
 
     res.json({
-      message: 'Token gerado. Informe o Token de Acesso. (modo offline — configure Supabase)',
+      message: 'Token gerado (modo offline — configure Supabase)',
       requiresToken: true,
       debugToken: user.token,
     });
@@ -130,17 +155,22 @@ export const verifyToken = async (req, res) => {
 
       await supabase.from('app_users').update({ token_used: true }).eq('id', user.id);
 
-      const session = {
-        userId: user.id,
+      const jwtToken = signUserToken({
         id: user.id,
-        fullName: user.full_name,
         email: user.email,
-        hasCompletedSurvey: user.has_completed_survey,
-      };
+        fullName: user.full_name,
+      });
 
       return res.json({
         message: 'Login realizado com sucesso',
-        user: session,
+        token: jwtToken,
+        user: {
+          userId: user.id,
+          id: user.id,
+          fullName: user.full_name,
+          email: user.email,
+          hasCompletedSurvey: user.has_completed_survey,
+        },
       });
     }
 
@@ -154,18 +184,18 @@ export const verifyToken = async (req, res) => {
     }
 
     user.tokenUsed = true;
-
-    const session = {
-      userId: user.id,
-      id: user.id,
-      fullName: user.fullName,
-      email: user.email,
-      hasCompletedSurvey: user.hasCompletedSurvey,
-    };
+    const jwtToken = signUserToken({ id: user.id, email: user.email, fullName: user.fullName });
 
     res.json({
-      message: 'Login realizado com sucesso (modo offline — configure Supabase)',
-      user: session,
+      message: 'Login realizado com sucesso (modo offline)',
+      token: jwtToken,
+      user: {
+        userId: user.id,
+        id: user.id,
+        fullName: user.fullName,
+        email: user.email,
+        hasCompletedSurvey: user.hasCompletedSurvey,
+      },
     });
   } catch (error) {
     console.error('[auth] verifyToken', error);

@@ -1,7 +1,8 @@
-import { Outlet, Link, useLocation } from 'react-router-dom';
+import { Outlet, Link, useLocation, Navigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, HelpCircle, Compass, UserCheck, ExternalLink, FileText
+  LayoutDashboard, Users, HelpCircle, Compass, UserCheck, ExternalLink, FileText, LogOut
 } from 'lucide-react';
+import { useAdminAuth } from '../hooks/useAdminAuth';
 
 const adminNav = [
   { path: '/html/adm', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -15,9 +16,23 @@ const adminNav = [
 /**
  * Layout Desktop do Painel Administrativo
  * Alterações aqui refletem na área pública do usuário
+ * Protegido por sessão de administrador (JWT)
  */
 export default function AdminDesktopLayout() {
   const location = useLocation();
+  const { isAuthenticated, admin, logout, loading } = useAdminAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-100">
+        <div className="animate-pulse text-slate-400">Carregando...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/html/adm/login" replace />;
+  }
 
   const isActive = (item) => {
     if (item.end) return location.pathname === item.path;
@@ -47,11 +62,10 @@ export default function AdminDesktopLayout() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${
-                  active
-                    ? 'bg-slate-800 text-white border-r-2 border-orange-500'
-                    : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
-                }`}
+                className={`flex items-center gap-3 px-5 py-3 text-sm font-medium transition-colors ${active
+                  ? 'bg-slate-800 text-white border-r-2 border-orange-500'
+                  : 'text-slate-400 hover:text-white hover:bg-slate-800/50'
+                  }`}
               >
                 <Icon size={18} className={active ? 'text-orange-400' : ''} />
                 {item.label}
@@ -60,7 +74,17 @@ export default function AdminDesktopLayout() {
           })}
         </nav>
 
-        <div className="p-4 border-t border-slate-700">
+        <div className="p-4 border-t border-slate-700 space-y-3">
+          {admin?.email && (
+            <p className="text-xs text-slate-500 truncate">{admin.email}</p>
+          )}
+          <button
+            onClick={logout}
+            className="flex items-center gap-2 text-sm text-slate-400 hover:text-white w-full"
+          >
+            <LogOut size={16} />
+            Sair
+          </button>
           <Link
             to="/"
             className="flex items-center gap-2 text-sm text-slate-400 hover:text-white"
