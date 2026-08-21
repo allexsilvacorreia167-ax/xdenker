@@ -7,6 +7,8 @@ import { signUserToken } from '../lib/jwt.js';
  * 1. Usuário informa Nome Completo + E-mail
  * 2. Sistema gera token TKN-XXXX-XXXX e envia por e-mail (Resend)
  * 3. Usuário informa o token recebido → sistema valida e emite um JWT de sessão
+ *
+ * O token NUNCA é exibido na tela — só chega por e-mail.
  */
 
 const mockUsers = new Map();
@@ -85,20 +87,20 @@ export const login = async (req, res) => {
         token: user.token,
       });
 
-      const response = { message: 'Token gerado e enviado por e-mail.', requiresToken: true };
-
-      // Em dev, ou se o e-mail falhar (ex: sandbox do Resend), mostra o token na tela como fallback
-      if (process.env.NODE_ENV !== 'production' || !emailResult.ok) {
-        response.debugToken = user.token;
-        if (!emailResult.ok) {
-          response.emailWarning = 'Não foi possível enviar o e-mail. Token exibido para teste.';
-        }
+      if (!emailResult.ok) {
+        console.error('[auth] falha ao enviar e-mail de token', emailResult.error);
+        return res.status(502).json({
+          error: 'Não foi possível enviar o e-mail com o token. Tente novamente em instantes.',
+        });
       }
 
-      return res.json(response);
+      return res.json({
+        message: 'Token gerado e enviado por e-mail.',
+        requiresToken: true,
+      });
     }
 
-    // Fallback em memória (sem Supabase)
+    // Fallback em memória (sem Supabase) — token ainda vai só por e-mail
     let user = [...mockUsers.values()].find((u) => u.email === normalizedEmail);
     if (!user) {
       const token = generateToken();
@@ -112,12 +114,27 @@ export const login = async (req, res) => {
         createdAt: new Date().toISOString(),
       };
       mockUsers.set(user.id, user);
+    } else {
+      user.token = generateToken();
+      user.tokenUsed = false;
+    }
+
+    const emailResult = await sendTokenEmail({
+      to: user.email,
+      fullName: user.fullName,
+      token: user.token,
+    });
+
+    if (!emailResult.ok) {
+      console.error('[auth] falha ao enviar e-mail (modo offline)', emailResult.error);
+      return res.status(502).json({
+        error: 'Não foi possível enviar o e-mail com o token. Tente novamente em instantes.',
+      });
     }
 
     res.json({
-      message: 'Token gerado (modo offline — configure Supabase)',
+      message: 'Token gerado e enviado por e-mail.',
       requiresToken: true,
-      debugToken: user.token,
     });
   } catch (error) {
     console.error('[auth] login', error);
