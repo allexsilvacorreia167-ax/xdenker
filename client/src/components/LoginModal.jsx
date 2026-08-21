@@ -2,13 +2,25 @@ import { apiFetch } from '../api';
 import { useState } from 'react';
 import { useAuth } from '../hooks/useAuth';
 import { X, Lock } from 'lucide-react';
+import { suggestEmailCorrection } from '../utils/emailSuggestion';
 
 export default function LoginModal({ step, setStep, credentials, setCredentials, onClose }) {
   const { login } = useAuth();
   const [token, setToken] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [debugToken, setDebugToken] = useState('');
+  const [emailSuggestion, setEmailSuggestion] = useState(null);
+
+  const handleEmailChange = (e) => {
+    const value = e.target.value;
+    setCredentials((prev) => ({ ...prev, email: value }));
+    setEmailSuggestion(suggestEmailCorrection(value));
+  };
+
+  const applyEmailSuggestion = () => {
+    setCredentials((prev) => ({ ...prev, email: emailSuggestion }));
+    setEmailSuggestion(null);
+  };
 
   const handleCredentialsSubmit = async (e) => {
     e.preventDefault();
@@ -25,7 +37,6 @@ export default function LoginModal({ step, setStep, credentials, setCredentials,
 
       if (!res.ok) throw new Error(data.error || 'Erro no login');
 
-      if (data.debugToken) setDebugToken(data.debugToken);
       setStep('token');
     } catch (err) {
       setError(err.message);
@@ -116,10 +127,17 @@ export default function LoginModal({ step, setStep, credentials, setCredentials,
                   required
                   className="w-full border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                   value={credentials.email}
-                  onChange={(e) =>
-                    setCredentials((prev) => ({ ...prev, email: e.target.value }))
-                  }
+                  onChange={handleEmailChange}
                 />
+                {emailSuggestion && (
+                  <button
+                    type="button"
+                    onClick={applyEmailSuggestion}
+                    className="mt-1.5 text-xs text-blue-600 hover:text-blue-800 text-left"
+                  >
+                    Você quis dizer <strong>{emailSuggestion}</strong>? Toque para corrigir
+                  </button>
+                )}
               </div>
               <button
                 type="submit"
@@ -131,11 +149,6 @@ export default function LoginModal({ step, setStep, credentials, setCredentials,
             </form>
           ) : (
             <form onSubmit={handleTokenSubmit} className="space-y-4">
-              {debugToken && (
-                <div className="p-3 bg-amber-50 text-amber-800 text-xs rounded-xl">
-                  <strong>Dev:</strong> Token → <code className="font-mono">{debugToken}</code>
-                </div>
-              )}
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1.5">
                   Token de Acesso
@@ -149,7 +162,7 @@ export default function LoginModal({ step, setStep, credentials, setCredentials,
                   onChange={(e) => setToken(e.target.value)}
                 />
                 <p className="text-xs text-slate-400 mt-1.5">
-                  O token foi enviado para seu e-mail pelo administrador
+                  O token foi enviado para seu e-mail
                 </p>
               </div>
               <button
