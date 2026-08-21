@@ -63,7 +63,7 @@ export default function LoginModal({ step, setStep, credentials, setCredentials,
 
       if (!res.ok) throw new Error(data.error || 'Token inválido');
 
-      login(data.user);
+      login(data.user, data.token);
       onClose();
     } catch (err) {
       setError(err.message);

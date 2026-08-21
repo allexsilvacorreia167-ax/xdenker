@@ -22,7 +22,7 @@ const LEGISLATIVE_FIELDS = [
 export default function QuestionarioPage() {
   const selectedUF = localStorage.getItem('xdenker_uf') || 'CE';
   const selectedTurno = localStorage.getItem('xdenker_turno') || '1';
-  const { isAuthenticated, user } = useAuth();
+  const { isAuthenticated, user, token } = useAuth();
   const navigate = useNavigate();
   const [stage, setStage] = useState(1);
   const [loading, setLoading] = useState(true);
@@ -49,22 +49,14 @@ export default function QuestionarioPage() {
   };
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      navigate('/');
-      return;
-    }
-    const uid = user?.userId || user?.id;
-    if (!uid) {
-      alert('Sessão inválida. Faça login novamente.');
+    if (!isAuthenticated || !token) {
       navigate('/');
       return;
     }
     apiFetch('/api/research/start', {
       method: 'POST',
       headers: {
-        Authorization: 'Bearer temp',
-        'X-User-Id': uid,
-        'X-User-Name': user?.fullName || '',
+        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ stateUF: selectedUF, turno: selectedTurno }),
     })
@@ -83,7 +75,7 @@ export default function QuestionarioPage() {
         setLoading(false);
         navigate('/');
       });
-  }, [isAuthenticated, navigate, selectedUF, selectedTurno]);
+  }, [isAuthenticated, token, navigate, selectedUF, selectedTurno]);
 
   const isLegislativeComplete = (field) => field.name.trim() && field.party;
 
@@ -115,9 +107,7 @@ export default function QuestionarioPage() {
       const res = await apiFetch('/api/research/calculate', {
         method: 'POST',
         headers: {
-          Authorization: 'Bearer temp',
-          'X-User-Id': user?.userId || user?.id || 'anon',
-          'X-User-Name': user?.fullName || '',
+          Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
