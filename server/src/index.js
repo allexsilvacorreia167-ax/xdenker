@@ -13,9 +13,21 @@ dotenv.config();
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middlewares
+// Aceita múltiplas origens, separadas por vírgula em FRONTEND_URL
+// Ex: FRONTEND_URL=https://xdenker.com.br,https://xdenker.vercel.app,http://localhost:5173
+const allowedOrigins = (process.env.FRONTEND_URL || 'http://localhost:5173')
+  .split(',')
+  .map((url) => url.trim());
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173',
+  origin: (origin, callback) => {
+    // Permite requisições sem origin (ex: Postman, apps mobile) e as origens da lista
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error(`CORS bloqueado para origem: ${origin}`));
+    }
+  },
   credentials: true
 }));
 app.use(express.json());
@@ -46,5 +58,5 @@ app.use((err, req, res, next) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`✌️😎 XDENKER Server rodando em http://localhost:${PORT}`);
+  console.log(`✌️ 😎 XDENKER Server rodando em http://localhost:${PORT}`);
 });
