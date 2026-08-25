@@ -28,7 +28,7 @@ export default function AdminLoginPage() {
             if (!res.ok) throw new Error(data.error || 'Erro no login');
 
             login(data.token, data.admin);
-            navigate('/html/adm');
+            navigate('/adm-painel');
         } catch (err) {
             setError(err.message);
         } finally {

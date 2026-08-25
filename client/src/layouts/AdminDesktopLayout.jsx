@@ -5,12 +5,12 @@ import {
 import { useAdminAuth } from '../hooks/useAdminAuth';
 
 const adminNav = [
-  { path: '/html/adm', label: 'Dashboard', icon: LayoutDashboard, end: true },
-  { path: '/html/adm/candidatos', label: 'Candidatos', icon: Users },
-  { path: '/html/adm/perguntas', label: 'Perguntas', icon: HelpCircle },
-  { path: '/html/adm/espectro', label: 'Espectro Político', icon: Compass },
-  { path: '/html/adm/blog', label: 'Blog', icon: FileText },
-  { path: '/html/adm/usuarios', label: 'Usuários', icon: UserCheck },
+  { path: '/adm-painel', label: 'Dashboard', icon: LayoutDashboard, end: true },
+  { path: '/adm-painel/candidatos', label: 'Candidatos', icon: Users },
+  { path: '/adm-painel/perguntas', label: 'Perguntas', icon: HelpCircle },
+  { path: '/adm-painel/espectro', label: 'Espectro Político', icon: Compass },
+  { path: '/adm-painel/blog', label: 'Blog', icon: FileText },
+  { path: '/adm-painel/usuarios', label: 'Usuários', icon: UserCheck },
 ];
 
 /**
@@ -31,7 +31,7 @@ export default function AdminDesktopLayout() {
   }
 
   if (!isAuthenticated) {
-    return <Navigate to="/html/adm/login" replace />;
+    return <Navigate to="/adm-painel/login" replace />;
   }
 
   const isActive = (item) => {

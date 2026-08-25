@@ -32,9 +32,9 @@ function App() {
           </Route>
 
           {/* Login do admin fica fora do layout protegido, senão criaria loop de redirecionamento */}
-          <Route path="/html/adm/login" element={<AdminLoginPage />} />
+          <Route path="/adm-painel/login" element={<AdminLoginPage />} />
 
-          <Route path="/html/adm" element={<AdminDesktopLayout />}>
+          <Route path="/adm-painel" element={<AdminDesktopLayout />}>
             <Route index element={<AdminDashboard />} />
             <Route path="candidatos" element={<AdminCandidatos />} />
             <Route path="perguntas" element={<AdminPerguntas />} />
