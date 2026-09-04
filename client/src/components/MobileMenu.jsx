@@ -45,11 +45,10 @@ export default function MobileMenu({ isOpen, onClose }) {
                 key={item.path}
                 to={item.path}
                 onClick={onClose}
-                className={`flex items-center gap-3 px-5 py-3.5 text-sm font-medium transition-colors ${
-                  active
+                className={`flex items-center gap-3 px-5 py-3.5 text-sm font-medium transition-colors ${active
                     ? 'bg-slate-700 text-white'
                     : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
-                }`}
+                  }`}
               >
                 <Icon size={18} className={active ? 'text-orange-400' : 'text-slate-400'} />
                 {item.label}

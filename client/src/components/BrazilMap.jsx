@@ -1,4 +1,7 @@
 /** Mapa tocável — escolha da UF (home e pesquisas) */
+import { useState } from 'react';
+import { ArrowLeft } from 'lucide-react';
+
 const REGIONS = [
     { name: 'Norte', ufs: ['RR', 'AP', 'AM', 'PA', 'AC', 'RO', 'TO'] },
     { name: 'Nordeste', ufs: ['MA', 'PI', 'CE', 'RN', 'PB', 'PE', 'AL', 'SE', 'BA'] },
@@ -13,6 +16,8 @@ const COLORS = [
 ];
 
 export default function BrazilMap({ selectedUF, onSelect }) {
+    const [showMap, setShowMap] = useState(!!selectedUF);
+
     let colorIdx = 0;
     const colorOf = {};
     REGIONS.forEach((r) => {
@@ -22,6 +27,52 @@ export default function BrazilMap({ selectedUF, onSelect }) {
         });
     });
 
+    const handleSelect = (uf) => {
+        onSelect?.(uf);
+        setShowMap(true);
+    };
+
+    const handleBack = () => {
+        setShowMap(false);
+    };
+
+    // ========== MODO MAPA ILUSTRADO ==========
+    if (showMap && selectedUF) {
+        return (
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-5 animate-in fade-in duration-300">
+                <div className="flex items-center justify-between mb-3">
+                    <button
+                        type="button"
+                        onClick={handleBack}
+                        className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 transition-colors"
+                    >
+                        <ArrowLeft size={16} />
+                        Trocar estado
+                    </button>
+                    <span className="text-sm font-semibold text-slate-700">
+                        Estado: <strong className="text-amber-600">{selectedUF}</strong>
+                    </span>
+                </div>
+
+                <div className="flex justify-center">
+                    <img
+                        src={`/${selectedUF.toLowerCase()}-estado.png`}
+                        alt={`Mapa de ${selectedUF}`}
+                        className="w-full max-w-[320px] max-h-[38vh] object-contain drop-shadow-xl"
+                        style={{
+                            filter: 'drop-shadow(0 12px 24px rgba(0,0,0,0.18))',
+                        }}
+                        onError={(e) => {
+                            // fallback caso a imagem ainda não exista
+                            e.target.style.display = 'none';
+                        }}
+                    />
+                </div>
+            </div>
+        );
+    }
+
+    // ========== MODO SELEÇÃO DE ÍCONES ==========
     return (
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
             <div className="mb-4">
@@ -44,7 +95,7 @@ export default function BrazilMap({ selectedUF, onSelect }) {
                                     <button
                                         key={uf}
                                         type="button"
-                                        onClick={() => onSelect?.(uf)}
+                                        onClick={() => handleSelect(uf)}
                                         className={`
                       min-w-[3rem] px-3 py-2.5 rounded-xl text-sm font-bold transition-all
                       active:scale-95 shadow-sm
@@ -62,12 +113,6 @@ export default function BrazilMap({ selectedUF, onSelect }) {
                     </div>
                 ))}
             </div>
-
-            {selectedUF && (
-                <p className="mt-4 text-center text-sm text-slate-600">
-                    Estado selecionado: <strong className="text-slate-900 text-base">{selectedUF}</strong>
-                </p>
-            )}
         </div>
     );
 }

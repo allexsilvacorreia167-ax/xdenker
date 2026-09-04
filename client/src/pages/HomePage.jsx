@@ -76,14 +76,16 @@ export default function HomePage() {
   };
 
   return (
-    <div className="bg-slate-50 min-h-screen pb-24">
-      <div className="text-center pt-5 pb-3 px-4">
+    <div className="bg-slate-50 min-h-screen pb-20">
+      {/* Título */}
+      <div className="text-center pt-4 pb-2 px-4">
         <h1 className="text-base md:text-lg font-bold tracking-wide text-slate-800 uppercase">
           Pesquisa Eleitoral — Eleições 2026
         </h1>
       </div>
 
-      <div className="px-4 md:px-8 mb-4 max-w-5xl mx-auto">
+      {/* Banner */}
+      <div className="px-4 md:px-8 mb-3 max-w-5xl mx-auto">
         <div className="rounded-2xl overflow-hidden shadow-md">
           <img
             src="/banner.jpg"
@@ -93,11 +95,13 @@ export default function HomePage() {
         </div>
       </div>
 
-      <div className="px-4 md:px-8 mb-4 max-w-5xl mx-auto">
+      {/* Mapa / Seleção de Estado */}
+      <div className="px-4 md:px-8 mb-3 max-w-5xl mx-auto">
         <BrazilMap selectedUF={selectedUF} onSelect={handleSelectUF} />
       </div>
 
-      <div className="px-4 md:px-8 mb-4 max-w-5xl mx-auto">
+      {/* Dados em tempo real */}
+      <div className="px-4 md:px-8 mb-3 max-w-5xl mx-auto">
         <div className="grid grid-cols-3 gap-2 bg-white rounded-2xl border border-slate-100 p-3 shadow-sm">
           <div className="text-center">
             <p className="text-[10px] uppercase text-slate-400 font-semibold">Dados</p>
@@ -116,6 +120,7 @@ export default function HomePage() {
         </div>
       </div>
 
+      {/* Participe da Pesquisa */}
       <div className="px-4 md:px-8 max-w-5xl mx-auto">
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
           <h2 className="text-sm font-bold tracking-wide text-slate-800 uppercase mb-1">
