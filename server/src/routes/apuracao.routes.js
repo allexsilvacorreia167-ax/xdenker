@@ -4,6 +4,7 @@ import {
   governador,
   mapaGovernador,
   legislativo,
+  preferencias,
 } from '../controllers/apuracao.controller.js';
 
 const router = Router();
@@ -20,5 +21,9 @@ router.get('/mapa-governador', mapaGovernador);
 // GET /api/apuracao/legislativo/:cargo?uf=CE
 // cargo: senador | deputado_federal | deputado_estadual
 router.get('/legislativo/:cargo', legislativo);
+
+// GET /api/apuracao/preferencias
+// Retorna hasCompleted:false se o usuário não fez a pesquisa (não requer login)
+router.get('/preferencias', preferencias);
 
 export default router;
