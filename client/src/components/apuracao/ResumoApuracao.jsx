@@ -55,6 +55,7 @@ export default function ResumoApuracao({ painel, onVoltar, onVerCompleta }) {
                 <CandidatoCard key={c.id} candidato={c} />
               ))}
             </div>
+            <TurnoBadge turno={presidente?.turno} />
           </div>
 
           <div>
@@ -62,11 +63,14 @@ export default function ResumoApuracao({ painel, onVoltar, onVerCompleta }) {
               Governador {painel.uf ? `(${painel.uf})` : ''}
             </p>
             {governador ? (
-              <div className="flex justify-center gap-1 md:gap-4">
-                {(governador?.exibidos || []).map((c) => (
-                  <CandidatoCard key={c.id} candidato={c} />
-                ))}
-              </div>
+              <>
+                <div className="flex justify-center gap-1 md:gap-4">
+                  {(governador?.exibidos || []).map((c) => (
+                    <CandidatoCard key={c.id} candidato={c} />
+                  ))}
+                </div>
+                <TurnoBadge turno={governador?.turno} />
+              </>
             ) : (
               <p className="text-center text-[9px] md:text-xs text-slate-400 mt-1 px-1">
                 Escolha um estado abaixo.
@@ -93,3 +97,23 @@ export default function ResumoApuracao({ painel, onVoltar, onVerCompleta }) {
     </div>
   );
 }
+
+/**
+ * Etiqueta de resultado de turno (só faz sentido para Presidente/Governador,
+ * cargos majoritários — regra: >50% dos votos válidos decide no 1º turno).
+ */
+function TurnoBadge({ turno }) {
+  if (!turno || (!turno.decidido && !turno.doisMaisVotados?.length)) return null;
+
+  return (
+    <p
+      className={`text-center text-[8px] md:text-[10px] font-semibold mt-1.5 md:mt-2 ${turno.decidido ? 'text-emerald-600' : 'text-amber-600'
+        }`}
+    >
+      {turno.decidido
+        ? `Eleito no 1º turno: ${turno.eleito?.name}`
+        : 'Vai para o 2º turno'}
+    </p>
+  );
+}
+

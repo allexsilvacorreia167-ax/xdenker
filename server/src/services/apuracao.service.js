@@ -13,7 +13,6 @@
  * este arquivo só orquestra os dois.
  */
 
-
 import {
   getPresidentCandidates,
   getGovernorCandidates,
@@ -104,6 +103,41 @@ async function buildResultFromCandidates(rawCandidates, totalVotesBase = 50_000_
   };
 }
 
+/**
+ * Regra de 1º/2º turno para cargos majoritários (Presidente, Governador).
+ *
+ * - `percent` já representa % sobre votos válidos (brancos/nulos não entram
+ *   na base de cálculo em nenhum momento deste serviço — nem no mock, nem
+ *   quando vier dado real do TSE, contanto que a fonte já forneça o
+ *   percentual sobre válidos, que é o padrão do TSE).
+ * - > 50% do líder -> eleito no 1º turno.
+ * - Caso contrário -> 2º turno entre os 2 mais votados, independentemente
+ *   da distância para o 3º colocado (não existe percentual mínimo de
+ *   vantagem, só o corte de 50%).
+ * - Só 1 candidato concorrendo (sem oposição) -> eleito automaticamente.
+ */
+function apurarTurno(candidatosOrdenados) {
+  if (!candidatosOrdenados?.length) {
+    return { decidido: false, eleito: null, doisMaisVotados: [] };
+  }
+
+  const lider = candidatosOrdenados[0];
+
+  if (candidatosOrdenados.length === 1 || lider.percent > 50) {
+    return {
+      decidido: true,
+      eleito: lider,
+      doisMaisVotados: candidatosOrdenados.slice(0, 2),
+    };
+  }
+
+  return {
+    decidido: false,
+    eleito: null,
+    doisMaisVotados: candidatosOrdenados.slice(0, 2),
+  };
+}
+
 // ---------- PRESIDENTE (nacional, sem UF) ----------
 
 export async function getResultadoPresidente() {
@@ -123,7 +157,12 @@ export async function getResultadoPresidente() {
       warning: 'Nenhum candidato de presidente cadastrado no ADM',
     };
 
-  const payload = { cargo: 'presidente', uf: null, ...result };
+  const payload = {
+    cargo: 'presidente',
+    uf: null,
+    ...result,
+    turno: apurarTurno(result.candidates),
+  };
   cacheSet(key, payload);
   return payload;
 }
@@ -148,7 +187,12 @@ export async function getResultadoGovernador(uf) {
   }
 
   const result = await buildResultFromCandidates(candidates, 3_000_000);
-  const payload = { cargo: 'governador', uf: ufUpper, ...result };
+  const payload = {
+    cargo: 'governador',
+    uf: ufUpper,
+    ...result,
+    turno: apurarTurno(result.candidates),
+  };
   cacheSet(key, payload);
   return payload;
 }
