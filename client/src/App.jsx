@@ -7,6 +7,7 @@ import BlogPage from './pages/BlogPage';
 import ContatoPage from './pages/ContatoPage';
 import MetodologiaPage from './pages/MetodologiaPage';
 import QuestionarioPage from './pages/QuestionarioPage';
+import ApuracaoPage from './pages/ApuracaoPage';
 import AdminLoginPage from './pages/admin/AdminLoginPage';
 import AdminDashboard from './pages/admin/AdminDashboard';
 import AdminCandidatos from './pages/admin/AdminCandidatos';
@@ -29,6 +30,7 @@ function App() {
             <Route path="/contato" element={<ContatoPage />} />
             <Route path="/metodologia" element={<MetodologiaPage />} />
             <Route path="/questionario" element={<QuestionarioPage />} />
+            <Route path="/apuracao" element={<ApuracaoPage />} />
           </Route>
 
           {/* Login do admin fica fora do layout protegido, senão criaria loop de redirecionamento */}

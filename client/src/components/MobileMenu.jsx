@@ -1,10 +1,11 @@
 import { Link, useLocation } from 'react-router-dom';
-import { X, Home, BarChart2, BookOpen, FileText, Phone } from 'lucide-react';
+import { X, Home, BarChart2, Vote, BookOpen, FileText, Phone } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const navItems = [
   { path: '/', label: 'Início', icon: Home },
   { path: '/pesquisas', label: 'Pesquisas', icon: BarChart2 },
+  { path: '/apuracao', label: 'Apuração', icon: Vote },
   { path: '/metodologia', label: 'Metodologia', icon: BookOpen },
   { path: '/blog', label: 'Blog', icon: FileText },
   { path: '/contato', label: 'Contato', icon: Phone },
@@ -46,8 +47,8 @@ export default function MobileMenu({ isOpen, onClose }) {
                 to={item.path}
                 onClick={onClose}
                 className={`flex items-center gap-3 px-5 py-3.5 text-sm font-medium transition-colors ${active
-                    ? 'bg-slate-700 text-white'
-                    : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
+                  ? 'bg-slate-700 text-white'
+                  : 'text-slate-300 hover:bg-slate-700/50 hover:text-white'
                   }`}
               >
                 <Icon size={18} className={active ? 'text-orange-400' : 'text-slate-400'} />

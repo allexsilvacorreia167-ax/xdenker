@@ -1,14 +1,21 @@
 import { apiFetch } from '../api';
 import { useAuth } from '../hooks/useAuth';
-import { Play } from 'lucide-react';
+import { Play, BarChart3 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import BrazilMap from '../components/BrazilMap';
+import ResumoApuracao from '../components/apuracao/ResumoApuracao';
+import usePainelApuracao from '../hooks/usePainelApuracao';
+import { fetchPreferenciasApuracao } from '../services/apuracao.service';
 
 /**
  * HOME — mapa do Brasil + turno + iniciar pesquisa
  * Gráficos ficam em /pesquisas
  * Voto de presidente (na pesquisa) vai ao banco e soma na pesquisa NACIONAL
+ *
+ * Módulo de Apuração em Tempo Real (TSE): o mesmo mapa/estado escolhido
+ * aqui também alimenta o painel de apuração (ver usePainelApuracao) —
+ * não existe um segundo seletor de estado só para a apuração.
  */
 export default function HomePage() {
   const { isAuthenticated, user } = useAuth();
@@ -21,6 +28,29 @@ export default function HomePage() {
   const [selectedTurno, setSelectedTurno] = useState(
     () => localStorage.getItem('xdenker_turno') || '1'
   );
+
+  // ---------- Apuração em Tempo Real ----------
+  const [mostrarApuracao, setMostrarApuracao] = useState(false);
+  const [preferenciaPesquisa, setPreferenciaPesquisa] = useState(null);
+  const painel = usePainelApuracao(preferenciaPesquisa);
+
+  useEffect(() => {
+    const carregarPreferencias = async () => {
+      try {
+        const prefs = await fetchPreferenciasApuracao();
+        if (prefs?.hasCompleted) {
+          setPreferenciaPesquisa({
+            uf: prefs.uf,
+            presidenteId: prefs.presidenteId,
+            governadorId: prefs.governadorId,
+          });
+        }
+      } catch (e) {
+        console.error('[apuracao] falha ao buscar preferências', e);
+      }
+    };
+    carregarPreferencias();
+  }, []);
 
   const userId = user?.userId || user?.id;
 
@@ -55,6 +85,8 @@ export default function HomePage() {
   const handleSelectUF = (uf) => {
     setSelectedUF(uf);
     localStorage.setItem('xdenker_uf', uf);
+    // Mesmo estado escolhido no mapa também vira o foco do painel de apuração
+    painel.selecionarEstado(uf);
   };
 
   const handleStart = () => {
@@ -84,15 +116,31 @@ export default function HomePage() {
         </h1>
       </div>
 
-      {/* Banner */}
+      {/* Banner OU Resumo da Apuração (troca com animação) */}
       <div className="px-4 md:px-8 mb-3 max-w-5xl mx-auto">
-        <div className="rounded-2xl overflow-hidden shadow-md">
-          <img
-            src="/banner.jpg"
-            alt="Sua Opinião Importa"
-            className="w-full h-auto object-cover aspect-[2.8/1] md:aspect-[3/1]"
+        {mostrarApuracao ? (
+          <ResumoApuracao
+            painel={painel}
+            onVoltar={() => setMostrarApuracao(false)}
+            onVerCompleta={() => navigate('/apuracao')}
           />
-        </div>
+        ) : (
+          <div className="relative rounded-2xl overflow-hidden shadow-md animate-in fade-in duration-300">
+            <img
+              src="/banner.jpg"
+              alt="Sua Opinião Importa"
+              className="w-full h-auto object-cover aspect-[2.8/1] md:aspect-[3/1]"
+            />
+            <button
+              type="button"
+              onClick={() => setMostrarApuracao(true)}
+              className="absolute bottom-3 left-1/2 -translate-x-1/2 md:bottom-6 inline-flex items-center gap-2 bg-white/95 hover:bg-white text-slate-800 font-semibold rounded-full px-4 py-2 md:px-5 md:py-2.5 text-xs md:text-sm shadow-lg backdrop-blur transition-transform hover:scale-[1.03]"
+            >
+              <BarChart3 size={16} className="text-amber-500" />
+              Ver apuração em tempo real
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Mapa / Seleção de Estado */}

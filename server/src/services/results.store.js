@@ -337,3 +337,64 @@ export async function resetResults() {
   mem.completedSurveys = [];
   return { ok: true };
 }
+
+/**
+ * Retorna a resposta de pesquisa de um usuário específico, ou null se ele
+ * ainda não participou. Usado pelo módulo de Apuração para decidir o
+ * painel padrão (UF + candidatos escolhidos na pesquisa).
+ */
+export async function getUserSurveyResponse(userId) {
+  if (!userId) return null;
+
+  if (supabaseConfigured && supabase) {
+    const { data, error } = await supabase
+      .from('survey_responses')
+      .select(
+        'user_id, president_id, governor_id, state_uf, dep_federal_name, dep_federal_party, dep_estadual_name, dep_estadual_party, senador_name, senador_party'
+      )
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (error) {
+      console.error('[results] getUserSurveyResponse', error);
+      return null;
+    }
+    if (!data) return null;
+
+    return {
+      userId: data.user_id,
+      presidentId: data.president_id,
+      governorId: data.governor_id,
+      stateUF: data.state_uf,
+      depFederal: data.dep_federal_name
+        ? { name: data.dep_federal_name, party: data.dep_federal_party }
+        : null,
+      depEstadual: data.dep_estadual_name
+        ? { name: data.dep_estadual_name, party: data.dep_estadual_party }
+        : null,
+      senador: data.senador_name
+        ? { name: data.senador_name, party: data.senador_party }
+        : null,
+    };
+  }
+
+  // Fallback em memória (mesmo formato do array `mem.completedSurveys`)
+  const found = mem.completedSurveys.find((s) => s.userId === userId);
+  if (!found) return null;
+
+  return {
+    userId: found.userId,
+    presidentId: found.presidentId,
+    governorId: found.governorId,
+    stateUF: found.stateUF,
+    depFederal: found.depFederalName
+      ? { name: found.depFederalName, party: found.depFederalParty }
+      : null,
+    depEstadual: found.depEstadualName
+      ? { name: found.depEstadualName, party: found.depEstadualParty }
+      : null,
+    senador: found.senadorName
+      ? { name: found.senadorName, party: found.senadorParty }
+      : null,
+  };
+}

@@ -7,6 +7,7 @@ import authRoutes from './routes/auth.routes.js';
 import adminAuthRoutes from './routes/adminAuth.routes.js';
 import researchRoutes from './routes/research.routes.js';
 import tseRoutes from './routes/tse.routes.js';
+import apuracaoRoutes from './routes/apuracao.routes.js';
 
 dotenv.config();
 
@@ -45,6 +46,7 @@ app.use('/api', publicRoutes);
 app.use('/api/research', researchRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/tse', tseRoutes);
+app.use('/api/apuracao', apuracaoRoutes);
 
 // 404
 app.use((req, res) => {
