@@ -134,9 +134,10 @@ export default function HomePage() {
             <button
               type="button"
               onClick={() => setMostrarApuracao(true)}
-              className="absolute bottom-3 left-1/2 -translate-x-1/2 md:bottom-6 inline-flex items-center gap-2 bg-white/95 hover:bg-white text-slate-800 font-semibold rounded-full px-4 py-2 md:px-5 md:py-2.5 text-xs md:text-sm shadow-lg backdrop-blur transition-transform hover:scale-[1.03]"
+              className="absolute bottom-2 left-1/2 -translate-x-1/2 md:bottom-6 inline-flex items-center gap-1 md:gap-2 bg-white/40 md:bg-white/95 hover:bg-white/70 md:hover:bg-white text-slate-800 font-medium md:font-semibold rounded-full px-2.5 py-1 md:px-5 md:py-2.5 text-[10px] md:text-sm shadow-sm md:shadow-lg backdrop-blur-[2px] md:backdrop-blur transition-all hover:scale-[1.03] whitespace-nowrap"
             >
-              <BarChart3 size={16} className="text-amber-500" />
+              <BarChart3 size={11} className="text-amber-500 md:hidden" />
+              <BarChart3 size={16} className="text-amber-500 hidden md:block" />
               Ver apuração em tempo real
             </button>
           </div>
