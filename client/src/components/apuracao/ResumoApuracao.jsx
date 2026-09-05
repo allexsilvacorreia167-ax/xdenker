@@ -99,7 +99,7 @@ export default function ResumoApuracao({ painel, onVoltar, onVerCompleta }) {
 }
 
 /**
- * Etiqueta de resultado de turno (só faz sentido para Presidente/Governador,
+ * Etiqueta de resultado de turno (Presidente/Governador,
  * cargos majoritários — regra: >50% dos votos válidos decide no 1º turno).
  */
 function TurnoBadge({ turno }) {
