@@ -28,12 +28,14 @@ const CARGOS_LEGISLATIVOS = ['senador', 'deputado_federal', 'deputado_estadual']
  * Layout ÚNICO e responsivo — 1 coluna empilhada no mobile, 3 colunas no
  * desktop (grid-cols-1 md:grid-cols-[260px_1fr_260px]).
  *
- * - Esquerda: Presidente + Governador sempre visíveis, clicáveis.
+ * - Esquerda: Presidente + Governador sempre visíveis. Desktop: lista
+ *   simples que alimenta o painel de detalhes à direita. Mobile: sanfona
+ *   (expande inline, sem painel separado).
  * - Centro: mapa por candidato líder (Presidente) ou por espectro
- *   (Governador), OU ranking com busca (Legislativo).
- * - Direita: detalhes do candidato selecionado — no Legislativo, some no
- *   mobile (o RankingLegislativo já mostra o detalhe inline, ver seu
- *   próprio arquivo), mas continua aparecendo no desktop.
+ *   (Governador), OU ranking com busca (Legislativo) — este último também
+ *   com sanfona no mobile.
+ * - Direita: painel de detalhes do candidato selecionado — exclusivo do
+ *   desktop (no mobile, os detalhes já aparecem inline nas sanfonas).
  *
  * O seletor de estado (BrazilMap, ícones por UF) só aparece na aba
  * Governador — nos cargos legislativos, o estado já vem escolhido de lá,
@@ -199,10 +201,10 @@ export default function ApuracaoPage() {
             )}
           </div>
 
-          {/* No mobile, Legislativo já mostra o detalhe inline (dentro do
-              RankingLegislativo) — esconder essa coluna evita duplicar.
-              No desktop, continua sempre visível como coluna dedicada. */}
-          <div className={ehLegislativo ? 'hidden md:block' : ''}>
+          {/* No mobile, os detalhes agora aparecem em sanfona dentro das
+              próprias listas (Presidente/Governador à esquerda, Legislativo
+              no centro) — esse painel fica exclusivo do desktop. */}
+          <div className="hidden md:block">
             <DetalhesCandidato
               candidato={selecao?.candidato}
               cargo={selecao?.cargo}
