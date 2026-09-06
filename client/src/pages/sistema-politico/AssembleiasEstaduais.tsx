@@ -20,142 +20,152 @@ export default function AssembleiasEstaduais() {
   const [estadoSelecionado, setEstadoSelecionado] = useState("SP");
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center">
-      <header className="bg-white border-b sticky top-0 z-50 w-full shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/">
-              <img src="/logo-xdenker.png" alt="XDENKER" className="h-9 w-auto" />
-            </Link>
-          </div>
+    <div className="bg-slate-50 min-h-screen pb-20">
+      <div className="px-4 md:px-8 pt-6 max-w-6xl mx-auto">
+        <Link
+          to="/sistema-politico"
+          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 mb-4"
+        >
+          ← Voltar à Visão Geral
+        </Link>
 
-          <h1 className="text-lg md:text-xl font-bold text-gray-900 text-center flex-1">
-            Assembleias Estaduais
-          </h1>
+        <h1 className="text-base md:text-lg font-bold text-slate-800 mb-1">
+          Assembleias Estaduais
+        </h1>
+        <p className="text-xs md:text-sm text-slate-500 mb-6">
+          Composição e deputados das assembleias legislativas estaduais
+        </p>
 
+        {/* Abas de navegação interna padronizadas */}
+        <div className="flex gap-1.5 md:gap-2 overflow-x-auto pb-1 mb-6 -mx-4 px-4 md:mx-0 md:px-0">
           <Link
             to="/sistema-politico"
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-white text-slate-500 border border-slate-200 hover:border-slate-300 transition-colors"
           >
-            ← Voltar à Visão Geral
+            Visão Geral
+          </Link>
+          <Link
+            to="/sistema-politico/executivo"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-white text-slate-500 border border-slate-200 hover:border-slate-300 transition-colors"
+          >
+            Executivo Federal
+          </Link>
+          <Link
+            to="/sistema-politico/senado"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-white text-slate-500 border border-slate-200 hover:border-slate-300 transition-colors"
+          >
+            Senado
+          </Link>
+          <Link
+            to="/sistema-politico/camara"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-white text-slate-500 border border-slate-200 hover:border-slate-300 transition-colors"
+          >
+            Câmara dos Deputados
+          </Link>
+          <Link
+            to="/sistema-politico/assembleias"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-slate-800 text-white transition-colors"
+          >
+            Assembleias Estaduais
           </Link>
         </div>
 
-        <nav className="border-t">
-          <div className="max-w-7xl mx-auto px-4 flex overflow-x-auto justify-center">
-            <Link to="/sistema-politico" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-              Visão Geral
-            </Link>
-            <Link to="/sistema-politico/executivo" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-              Executivo Federal
-            </Link>
-            <Link to="/sistema-politico/senado" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-              Senado
-            </Link>
-            <Link to="/sistema-politico/camara" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-              Câmara dos Deputados
-            </Link>
-            <Link to="/sistema-politico/assembleias" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-blue-600 text-blue-600">
-              Assembleias Estaduais
-            </Link>
-          </div>
-        </nav>
-      </header>
+        {/* Conteúdo Principal estruturado */}
+        <div className="space-y-6">
+          {/* Seletor de Estado */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
+            <h2 className="text-sm md:text-base font-bold text-slate-800 mb-4">Selecione um Estado</h2>
 
-      <main className="w-full max-w-7xl mx-auto px-4 py-6 space-y-8 flex-1">
-        {/* Seletor de Estado */}
-        <section className="bg-white rounded-2xl shadow-sm border p-5">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Selecione um Estado</h2>
+            <div className="flex flex-wrap gap-1.5 md:gap-2">
+              {estados.map((uf) => (
+                <button
+                  key={uf}
+                  onClick={() => setEstadoSelecionado(uf)}
+                  className={`px-3 py-1.5 rounded-xl text-xs md:text-sm font-medium transition-colors ${estadoSelecionado === uf
+                    ? "bg-slate-800 text-white shadow-sm"
+                    : "bg-slate-50 text-slate-700 border border-slate-200 hover:bg-slate-100"
+                    }`}
+                >
+                  {uf}
+                </button>
+              ))}
+            </div>
+          </section>
 
-          <div className="flex flex-wrap gap-2">
-            {estados.map((uf) => (
-              <button
-                key={uf}
-                onClick={() => setEstadoSelecionado(uf)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${estadoSelecionado === uf
-                  ? "bg-blue-600 text-white"
-                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-              >
-                {uf}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        {/* Hemiciclo do Estado */}
-        <section className="bg-white rounded-2xl shadow-sm border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-800">
-              Assembleia Legislativa — {estadoSelecionado}
-            </h2>
-            <span className="text-sm text-gray-500">Deputados Estaduais</span>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="bg-gray-50 rounded-xl h-64 flex items-center justify-center">
-              <div className="text-center text-gray-400">
-                <div className="text-4xl font-bold">{estadoSelecionado}</div>
-                <div className="text-sm mt-2">Mapa / Ilustração do Estado</div>
-              </div>
+          {/* Hemiciclo do Estado */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm md:text-base font-bold text-slate-800">
+                Assembleia Legislativa — {estadoSelecionado}
+              </h2>
+              <span className="text-xs md:text-sm text-slate-500">Deputados Estaduais</span>
             </div>
 
-            <div className="bg-gray-50 rounded-xl h-64 flex items-end justify-center pb-8">
-              <div className="text-center">
-                <div className="text-4xl font-bold text-gray-300">—</div>
-                <div className="text-sm text-gray-400 mt-2">Hemiciclo da Assembleia</div>
-                <div className="text-xs text-gray-400 mt-1">
-                  Quantidade varia por estado
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+              <div className="bg-slate-50 border border-slate-200 rounded-xl h-56 md:h-64 flex items-center justify-center">
+                <div className="text-center text-slate-400">
+                  <div className="text-3xl md:text-4xl font-bold text-slate-600">{estadoSelecionado}</div>
+                  <div className="text-xs md:text-sm mt-2">Mapa / Ilustração do Estado</div>
+                </div>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-xl h-56 md:h-64 flex items-end justify-center pb-6 md:pb-8">
+                <div className="text-center">
+                  <div className="text-3xl md:text-4xl font-bold text-slate-300">—</div>
+                  <div className="text-xs md:text-sm text-slate-400 mt-2">Hemiciclo da Assembleia</div>
+                  <div className="text-[11px] md:text-xs text-slate-400 mt-1">
+                    Quantidade varia por estado
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Legenda */}
-          <div className="mt-6 pt-5 border-t">
-            <div className="flex flex-wrap gap-4 text-sm">
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.esquerda }} />
-                Esquerda
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.centroEsquerda }} />
-                Centro-Esquerda
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.centro }} />
-                Centro
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.centroDireita }} />
-                Centro-Direita
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.direita }} />
-                Direita
+            {/* Legenda */}
+            <div className="mt-6 pt-5 border-t border-slate-100">
+              <div className="flex flex-wrap gap-4 text-xs md:text-sm text-slate-700">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.esquerda }} />
+                  Esquerda
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.centroEsquerda }} />
+                  Centro-Esquerda
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.centro }} />
+                  Centro
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.centroDireita }} />
+                  Centro-Direita
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.direita }} />
+                  Direita
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Lista de Deputados Estaduais */}
-        <section className="bg-white rounded-2xl shadow-sm border p-6">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
-            <h2 className="text-lg font-bold text-gray-800">
-              Deputados Estaduais — {estadoSelecionado}
-            </h2>
-            <input
-              type="text"
-              placeholder="Buscar deputado estadual..."
-              className="border rounded-lg px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
-          </div>
+          {/* Lista de Deputados Estaduais */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
+            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-5">
+              <h2 className="text-sm md:text-base font-bold text-slate-800">
+                Deputados Estaduais — {estadoSelecionado}
+              </h2>
+              <input
+                type="text"
+                placeholder="Buscar deputado estadual..."
+                className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs md:text-sm focus:outline-none focus:ring-2 focus:ring-slate-400 bg-slate-50 w-full md:w-auto"
+              />
+            </div>
 
-          <div className="border rounded-xl p-8 text-center text-gray-400">
-            Lista de deputados estaduais de {estadoSelecionado} será carregada aqui
-          </div>
-        </section>
-      </main>
+            <div className="border border-dashed border-slate-200 rounded-xl p-8 text-center text-slate-400 text-xs md:text-sm">
+              Lista de deputados estaduais de {estadoSelecionado} será carregada aqui
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
   );
 }

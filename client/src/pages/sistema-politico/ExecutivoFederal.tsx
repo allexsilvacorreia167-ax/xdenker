@@ -26,133 +26,143 @@ const ministros = [
 
 export default function ExecutivoFederal() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center">
-      <header className="bg-white border-b sticky top-0 z-50 w-full shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/">
-              <img src="/logo-xdenker.png" alt="XDENKER" className="h-9 w-auto" />
-            </Link>
-          </div>
+    <div className="bg-slate-50 min-h-screen pb-20">
+      <div className="px-4 md:px-8 pt-6 max-w-6xl mx-auto">
+        <Link
+          to="/sistema-politico"
+          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 mb-4"
+        >
+          ← Voltar à Visão Geral
+        </Link>
 
-          <h1 className="text-lg md:text-xl font-bold text-gray-900 text-center flex-1">
-            Executivo Federal
-          </h1>
+        <h1 className="text-base md:text-lg font-bold text-slate-800 mb-1">
+          Executivo Federal
+        </h1>
+        <p className="text-xs md:text-sm text-slate-500 mb-6">
+          Composição e ministérios do governo federal
+        </p>
 
+        {/* Abas de navegação interna padronizadas */}
+        <div className="flex gap-1.5 md:gap-2 overflow-x-auto pb-1 mb-6 -mx-4 px-4 md:mx-0 md:px-0">
           <Link
             to="/sistema-politico"
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-white text-slate-500 border border-slate-200 hover:border-slate-300 transition-colors"
           >
-            ← Voltar à Visão Geral
+            Visão Geral
+          </Link>
+          <Link
+            to="/sistema-politico/executivo"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-slate-800 text-white transition-colors"
+          >
+            Executivo Federal
+          </Link>
+          <Link
+            to="/sistema-politico/senado"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-white text-slate-500 border border-slate-200 hover:border-slate-300 transition-colors"
+          >
+            Senado
+          </Link>
+          <Link
+            to="/sistema-politico/camara"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-white text-slate-500 border border-slate-200 hover:border-slate-300 transition-colors"
+          >
+            Câmara dos Deputados
+          </Link>
+          <Link
+            to="/sistema-politico/assembleias"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-white text-slate-500 border border-slate-200 hover:border-slate-300 transition-colors"
+          >
+            Assembleias Estaduais
           </Link>
         </div>
 
-        <nav className="border-t">
-          <div className="max-w-7xl mx-auto px-4 flex overflow-x-auto justify-center">
-            <Link to="/sistema-politico" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-              Visão Geral
-            </Link>
-            <Link to="/sistema-politico/executivo" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-blue-600 text-blue-600">
-              Executivo Federal
-            </Link>
-            <Link to="/sistema-politico/senado" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-              Senado
-            </Link>
-            <Link to="/sistema-politico/camara" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-              Câmara dos Deputados
-            </Link>
-            <Link to="/sistema-politico/assembleias" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-              Assembleias Estaduais
-            </Link>
-          </div>
-        </nav>
-      </header>
-
-      <main className="w-full max-w-7xl mx-auto px-4 py-6 space-y-8 flex-1">
-        {/* Presidente */}
-        <section className="bg-white rounded-2xl shadow-sm border p-6">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Presidente da República</h2>
-          <div className="flex flex-col sm:flex-row items-center gap-6">
-            <div className="w-32 h-32 rounded-full bg-gray-200 flex-shrink-0" />
-            <div>
-              <div className="text-2xl font-bold text-gray-900">Lula da Silva</div>
-              <div className="text-gray-600 mt-1">PT • Mandato 2023-2027</div>
-              <div className="mt-2 inline-flex items-center gap-2">
-                <span
-                  className="px-3 py-1 rounded-full text-xs font-medium text-white"
-                  style={{ background: spectrumColors.esquerda }}
-                >
-                  Esquerda
-                </span>
+        {/* Conteúdo Principal estruturado */}
+        <div className="space-y-6">
+          {/* Presidente */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
+            <h2 className="text-sm md:text-base font-bold text-slate-800 mb-4">Presidente da República</h2>
+            <div className="flex flex-col sm:flex-row items-center gap-6">
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full bg-slate-200 flex-shrink-0" />
+              <div className="text-center sm:text-left">
+                <div className="text-xl md:text-2xl font-bold text-slate-800">Lula da Silva</div>
+                <div className="text-xs md:text-sm text-slate-500 mt-1">PT • Mandato 2023-2027</div>
+                <div className="mt-3 inline-flex items-center gap-2">
+                  <span
+                    className="px-3 py-1 rounded-full text-xs font-medium text-white"
+                    style={{ background: spectrumColors.esquerda }}
+                  >
+                    Esquerda
+                  </span>
+                </div>
               </div>
             </div>
-          </div>
-        </section>
+          </section>
 
-        {/* Ministros */}
-        <section className="bg-white rounded-2xl shadow-sm border p-6">
-          <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-bold text-gray-800">Ministros de Estado</h2>
-            <span className="text-sm text-gray-500">{ministros.length} pastas</span>
-          </div>
+          {/* Ministros */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
+            <div className="flex items-center justify-between mb-5">
+              <h2 className="text-sm md:text-base font-bold text-slate-800">Ministros de Estado</h2>
+              <span className="text-xs md:text-sm text-slate-500">{ministros.length} pastas</span>
+            </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {ministros.map((ministro) => (
-              <div
-                key={ministro.nome}
-                className="border rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer"
-              >
-                <div className="flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-full bg-gray-200 flex-shrink-0" />
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium text-gray-900 truncate">{ministro.nome}</div>
-                    <div className="text-sm text-gray-500">{ministro.pasta}</div>
-                    <div className="flex items-center gap-2 mt-2">
-                      <span className="text-xs text-gray-500">{ministro.partido}</span>
-                      <span
-                        className="w-2.5 h-2.5 rounded-full"
-                        style={{
-                          background:
-                            spectrumColors[ministro.espectro as keyof typeof spectrumColors],
-                        }}
-                      />
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {ministros.map((ministro) => (
+                <div
+                  key={ministro.nome}
+                  className="border border-slate-200 rounded-xl p-4 hover:shadow-md transition-shadow cursor-pointer bg-white"
+                >
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 md:w-12 md:h-12 rounded-full bg-slate-200 flex-shrink-0" />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs md:text-sm font-medium text-slate-800 truncate">{ministro.nome}</div>
+                      <div className="text-[11px] md:text-xs text-slate-500 truncate">{ministro.pasta}</div>
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-[11px] text-slate-500">{ministro.partido}</span>
+                        <span
+                          className="w-2.5 h-2.5 rounded-full"
+                          style={{
+                            background:
+                              spectrumColors[ministro.espectro as keyof typeof spectrumColors],
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
-            ))}
-          </div>
-        </section>
+              ))}
+            </div>
+          </section>
 
-        {/* Espectro do Executivo */}
-        <section className="bg-white rounded-2xl shadow-sm border p-6">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Espectro do Executivo Federal</h2>
-          <div className="h-10 rounded-full overflow-hidden flex">
-            <div className="h-full" style={{ width: "45%", background: spectrumColors.esquerda }} />
-            <div className="h-full" style={{ width: "20%", background: spectrumColors.centroEsquerda }} />
-            <div className="h-full" style={{ width: "25%", background: spectrumColors.centro }} />
-            <div className="h-full" style={{ width: "10%", background: spectrumColors.centroDireita }} />
-          </div>
-          <div className="flex flex-wrap gap-4 mt-4 text-sm">
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.esquerda }} />
-              Esquerda
+          {/* Espectro do Executivo */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
+            <h2 className="text-sm md:text-base font-bold text-slate-800 mb-4">Espectro do Executivo Federal</h2>
+            <div className="h-6 md:h-8 rounded-full overflow-hidden flex">
+              <div className="h-full" style={{ width: "45%", background: spectrumColors.esquerda }} />
+              <div className="h-full" style={{ width: "20%", background: spectrumColors.centroEsquerda }} />
+              <div className="h-full" style={{ width: "25%", background: spectrumColors.centro }} />
+              <div className="h-full" style={{ width: "10%", background: spectrumColors.centroDireita }} />
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.centroEsquerda }} />
-              Centro-Esquerda
+            <div className="flex flex-wrap gap-4 mt-4 text-xs md:text-sm text-slate-700">
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.esquerda }} />
+                Esquerda
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.centroEsquerda }} />
+                Centro-Esquerda
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.centro }} />
+                Centro
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.centroDireita }} />
+                Centro-Direita
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.centro }} />
-              Centro
-            </div>
-            <div className="flex items-center gap-2">
-              <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.centroDireita }} />
-              Centro-Direita
-            </div>
-          </div>
-        </section>
-      </main>
+          </section>
+        </div>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 // src/pages/judiciario/JudiciarioGeral.tsx
-import { Link } from "react-router-dom";
-import { useState } from "react";
-import { ChevronRight, ChevronDown } from "lucide-react";
+import { useState } from 'react';
+import { Link } from 'react-router-dom';
+import { ArrowLeft, ChevronRight, ChevronDown } from 'lucide-react';
 
 const instituicoes = [
   {
@@ -95,7 +95,7 @@ const orgaosControle = [
     descricao: "Representa a União em processos judiciais e extrajudiciais. Defende os interesses do Estado.",
   },
   {
-    nome: "Procuradoria-Geral da República (PGR)",
+    nome: "Procuradoria-Geral da PGR",
     cargo: "Procurador-Geral",
     descricao: "Chefe do Ministério Público Federal. Atua na defesa da ordem jurídica e dos interesses sociais.",
   },
@@ -109,141 +109,150 @@ export default function JudiciarioGeral() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center">
-      <header className="bg-white border-b sticky top-0 z-50 w-full shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <Link to="/">
-            <img src="/logo.png" alt="XDENKER" className="h-9 w-auto" />
-          </Link>
+    <div className="bg-slate-50 min-h-screen pb-20">
+      <div className="px-4 md:px-8 pt-6 max-w-6xl mx-auto">
+        <Link
+          to="/"
+          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 mb-4"
+        >
+          <ArrowLeft size={16} />
+          Voltar
+        </Link>
 
-          <h1 className="text-lg md:text-2xl font-bold text-gray-900 text-center flex-1">
-            Judiciário
-          </h1>
+        <h1 className="text-base md:text-lg font-bold text-slate-800 mb-3">
+          Poder Judiciário — Instituições e Órgãos Superiores
+        </h1>
 
+        {/* Abas de navegação interna do Judiciário */}
+        <div className="flex gap-1.5 md:gap-2 overflow-x-auto pb-1 mb-6 -mx-4 px-4 md:mx-0 md:px-0">
           <Link
-            to="/"
-            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
+            to="/judiciario"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-slate-800 text-white transition-colors"
           >
-            ← Voltar ao início
+            Visão Geral
+          </Link>
+          <Link
+            to="/judiciario/stf"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-white text-slate-500 border border-slate-200 hover:border-slate-300 transition-colors"
+          >
+            STF
+          </Link>
+          <Link
+            to="/judiciario/stj"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-white text-slate-500 border border-slate-200 hover:border-slate-300 transition-colors"
+          >
+            STJ
+          </Link>
+          <Link
+            to="/judiciario/tse"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-white text-slate-500 border border-slate-200 hover:border-slate-300 transition-colors"
+          >
+            TSE
+          </Link>
+          <Link
+            to="/judiciario/tst"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-white text-slate-500 border border-slate-200 hover:border-slate-300 transition-colors"
+          >
+            TST
+          </Link>
+          <Link
+            to="/judiciario/stm"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-white text-slate-500 border border-slate-200 hover:border-slate-300 transition-colors"
+          >
+            STM
+          </Link>
+          <Link
+            to="/judiciario/controle"
+            className="flex-shrink-0 px-3 py-1.5 md:px-4 md:py-2 rounded-full text-xs md:text-sm font-semibold whitespace-nowrap bg-white text-slate-500 border border-slate-200 hover:border-slate-300 transition-colors"
+          >
+            Órgãos de Controle
           </Link>
         </div>
 
-        <p className="text-center text-sm text-gray-500 pb-3">
-          Entenda a estrutura da Justiça no Brasil
-        </p>
+        {/* Conteúdo Principal estruturado */}
+        <div className="space-y-6">
+          {/* Tribunais Superiores */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
+            <h2 className="text-sm md:text-base font-bold text-slate-800 mb-4">Tribunais Superiores</h2>
 
-        <nav className="border-t">
-          <div className="max-w-7xl mx-auto px-4 flex overflow-x-auto justify-center">
-            <Link to="/judiciario" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-blue-600 text-blue-600">
-              Visão Geral
-            </Link>
-            <Link to="/judiciario/stf" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-              STF
-            </Link>
-            <Link to="/judiciario/stj" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-              STJ
-            </Link>
-            <Link to="/judiciario/tse" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-              TSE
-            </Link>
-            <Link to="/judiciario/tst" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-              TST
-            </Link>
-            <Link to="/judiciario/stm" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-              STM
-            </Link>
-            <Link to="/judiciario/controle" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-              Órgãos de Controle
-            </Link>
-          </div>
-        </nav>
-      </header>
-
-      <main className="w-full max-w-7xl mx-auto px-4 py-6 space-y-8 flex-1">
-        {/* Tribunais Superiores */}
-        <section className="bg-white rounded-2xl shadow-sm border p-6">
-          <h2 className="text-lg font-bold text-gray-800 mb-4">Tribunais Superiores</h2>
-
-          <div className="space-y-3">
-            {instituicoes.map((item) => (
-              <div key={item.id} className="border rounded-xl overflow-hidden">
-                <button
-                  onClick={() => toggle(item.id)}
-                  className="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors"
-                >
-                  <div>
-                    <div className="font-semibold text-gray-900">
-                      {item.sigla} — {item.nome}
-                    </div>
-                    <div className="text-sm text-gray-500 mt-0.5">
-                      Presidente: {item.presidente}
-                    </div>
-                  </div>
-                  {aberto === item.id ? (
-                    <ChevronDown size={20} className="text-gray-400 flex-shrink-0" />
-                  ) : (
-                    <ChevronRight size={20} className="text-gray-400 flex-shrink-0" />
-                  )}
-                </button>
-
-                {aberto === item.id && (
-                  <div className="px-5 pb-5 border-t bg-gray-50">
-                    <p className="text-sm text-gray-700 mt-4 mb-3">{item.descricao}</p>
-
-                    <div className="mb-3">
-                      <div className="text-xs font-semibold text-gray-500 uppercase mb-2">
-                        Principais competências
+            <div className="space-y-3">
+              {instituicoes.map((item) => (
+                <div key={item.id} className="border border-slate-200 rounded-xl overflow-hidden">
+                  <button
+                    type="button"
+                    onClick={() => toggle(item.id)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50 transition-colors"
+                  >
+                    <div>
+                      <div className="font-semibold text-sm text-slate-900">
+                        {item.sigla} — {item.nome}
                       </div>
-                      <ul className="space-y-1">
-                        {item.competencias.map((comp, i) => (
-                          <li key={i} className="text-sm text-gray-700 flex gap-2">
-                            <span className="text-blue-600">•</span>
-                            {comp}
-                          </li>
-                        ))}
-                      </ul>
+                      <div className="text-xs text-slate-500 mt-0.5">
+                        Presidente: {item.presidente}
+                      </div>
                     </div>
+                    {aberto === item.id ? (
+                      <ChevronDown size={18} className="text-slate-400 flex-shrink-0" />
+                    ) : (
+                      <ChevronRight size={18} className="text-slate-400 flex-shrink-0" />
+                    )}
+                  </button>
 
-                    <Link
-                      to={item.path}
-                      className="inline-block mt-2 text-sm text-blue-600 font-medium hover:underline"
-                    >
-                      Ver composição completa →
-                    </Link>
-                  </div>
-                )}
-              </div>
-            ))}
-          </div>
-        </section>
+                  {aberto === item.id && (
+                    <div className="px-4 pb-4 border-t border-slate-200 bg-slate-50">
+                      <p className="text-xs md:text-sm text-slate-700 mt-3 mb-3">{item.descricao}</p>
 
-        {/* Órgãos de Controle */}
-        <section className="bg-white rounded-2xl shadow-sm border p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-bold text-gray-800">Órgãos de Controle e Investigação</h2>
-            <Link
-              to="/judiciario/controle"
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
-            >
-              Ver todos →
-            </Link>
-          </div>
+                      <div className="mb-3">
+                        <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">
+                          Principais competências
+                        </div>
+                        <ul className="space-y-1">
+                          {item.competencias.map((comp, i) => (
+                            <li key={i} className="text-xs md:text-sm text-slate-700 flex gap-2">
+                              <span className="text-sky-500">•</span>
+                              {comp}
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {orgaosControle.map((orgao) => (
-              <div key={orgao.nome} className="border rounded-xl p-4 hover:bg-gray-50 transition-colors">
-                <div className="font-semibold text-gray-900">{orgao.nome}</div>
-                <div className="text-sm text-blue-600 mt-0.5">{orgao.cargo}</div>
-                <p className="text-sm text-gray-600 mt-2">{orgao.descricao}</p>
-              </div>
-            ))}
-          </div>
-        </section>
+                      <Link
+                        to={item.path}
+                        className="inline-block mt-1 text-xs md:text-sm text-sky-600 font-medium hover:underline"
+                      >
+                        Ver composição completa →
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </section>
 
-        <p className="text-center text-sm text-gray-500 pb-8">
-          Clique em qualquer instituição para ver mais informações
-        </p>
-      </main>
+          {/* Órgãos de Controle */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-sm md:text-base font-bold text-slate-800">Órgãos de Controle e Investigação</h2>
+              <Link
+                to="/judiciario/controle"
+                className="text-xs font-medium text-slate-500 hover:text-slate-800 transition-colors"
+              >
+                Ver todos →
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {orgaosControle.map((orgao) => (
+                <div key={orgao.nome} className="border border-slate-200 rounded-xl p-4 hover:bg-slate-50 transition-colors">
+                  <div className="font-semibold text-sm text-slate-900">{orgao.nome}</div>
+                  <div className="text-xs text-sky-600 mt-0.5">{orgao.cargo}</div>
+                  <p className="text-xs text-slate-600 mt-2">{orgao.descricao}</p>
+                </div>
+              ))}
+            </div>
+          </section>
+        </div>
+      </div>
     </div>
   );
 }
