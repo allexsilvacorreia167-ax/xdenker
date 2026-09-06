@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import BrazilMap from '../components/BrazilMap';
 import MapaEspectroPolitico from '../components/apuracao/MapaEspectroPolitico';
+import MapaMunicipiosGovernador from '../components/apuracao/MapaMunicipiosGovernador';
 import PainelExecutivoLateral from '../components/apuracao/PainelExecutivoLateral';
 import DetalhesCandidato from '../components/apuracao/DetalhesCandidato';
 import RankingLegislativo from '../components/apuracao/RankingLegislativo';
@@ -32,8 +33,13 @@ const CARGOS_LEGISLATIVOS = ['senador', 'deputado_federal', 'deputado_estadual']
  *   simples que alimenta o painel de detalhes à direita. Mobile: sanfona
  *   (expande inline, sem painel separado).
  * - Centro: mapa por candidato líder (Presidente) ou por espectro
- *   (Governador), OU ranking com busca (Legislativo) — este último também
- *   com sanfona no mobile.
+ *   (Governador). Clicar num estado abre drill-down municipal
+ *   (MapaMunicipiosGovernador, reaproveitado para os dois cargos) — no
+ *   Governador isso também define o `painel.uf` global; no Presidente é
+ *   só um foco local (não altera o UF do painel), com botão para voltar
+ *   ao mapa nacional. Zoom com botões no desktop, pinça no touch no
+ *   mobile, nos dois níveis (nacional e municipal). Ou ranking com busca
+ *   (Legislativo) — este último também com sanfona no mobile.
  * - Direita: painel de detalhes do candidato selecionado — exclusivo do
  *   desktop (no mobile, os detalhes já aparecem inline nas sanfonas).
  *
@@ -51,6 +57,7 @@ export default function ApuracaoPage() {
   const [cargoAtivo, setCargoAtivo] = useState('presidente');
   const [preferenciaPesquisa, setPreferenciaPesquisa] = useState(null);
   const [selecao, setSelecao] = useState(null); // { cargo, candidato }
+  const [estadoFocalizadoPresidente, setEstadoFocalizadoPresidente] = useState(null);
 
   const painel = usePainelApuracao(preferenciaPesquisa);
 
@@ -72,6 +79,11 @@ export default function ApuracaoPage() {
   useEffect(() => {
     setSelecao(null);
   }, [painel.uf]);
+
+  // Reseta o drill municipal do Presidente ao trocar de aba
+  useEffect(() => {
+    setEstadoFocalizadoPresidente(null);
+  }, [cargoAtivo]);
 
   const ehLegislativo = CARGOS_LEGISLATIVOS.includes(cargoAtivo);
 
@@ -98,15 +110,17 @@ export default function ApuracaoPage() {
     setSelecao(candidato ? { cargo: cargoAtivo, candidato } : null);
   };
 
-  // Clique no mapa: Governador troca o estado em foco; Presidente só
-  // seleciona o candidato líder daquele estado para o painel de detalhes
-  // (a lista de candidatos de Presidente não depende de UF).
+  // Clique no mapa: Governador troca o estado em foco (drill municipal
+  // automático); Presidente abre o drill municipal só daquele estado,
+  // sem mexer em painel.uf (a lista de candidatos de Presidente não
+  // depende de UF), e seleciona o candidato líder ali para o painel de detalhes.
   const handleClickMapa = (uf) => {
     if (cargoAtivo === 'governador') {
       handleSelecionarUF(uf);
       return;
     }
     if (cargoAtivo === 'presidente') {
+      setEstadoFocalizadoPresidente(uf);
       const item = mapaPresidente?.ufs?.find((x) => x.uf === uf);
       const candidato = dadosPresidente?.candidates?.find((c) => c.id === item?.leaderId);
       if (candidato) setSelecao({ cargo: 'presidente', candidato });
@@ -177,11 +191,33 @@ export default function ApuracaoPage() {
               />
             ) : (
               <>
-                <MapaEspectroPolitico
-                  ufsData={cargoAtivo === 'presidente' ? mapaPresidente?.ufs : mapaGovernador?.ufs}
-                  ufSelecionada={cargoAtivo === 'governador' ? painel.uf : null}
-                  onSelecionarUF={handleClickMapa}
-                />
+                {cargoAtivo === 'governador' && painel.uf ? (
+                  <MapaMunicipiosGovernador
+                    uf={painel.uf}
+                    candidatos={dadosGovernador?.candidates}
+                  />
+                ) : cargoAtivo === 'presidente' && estadoFocalizadoPresidente ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => setEstadoFocalizadoPresidente(null)}
+                      className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 mb-2"
+                    >
+                      <ArrowLeft size={14} />
+                      Voltar ao mapa nacional
+                    </button>
+                    <MapaMunicipiosGovernador
+                      uf={estadoFocalizadoPresidente}
+                      candidatos={dadosPresidente?.candidates}
+                    />
+                  </>
+                ) : (
+                  <MapaEspectroPolitico
+                    ufsData={cargoAtivo === 'presidente' ? mapaPresidente?.ufs : mapaGovernador?.ufs}
+                    ufSelecionada={null}
+                    onSelecionarUF={handleClickMapa}
+                  />
+                )}
 
                 {/* Seletor de estado — só faz sentido para Governador */}
                 {cargoAtivo === 'governador' && (

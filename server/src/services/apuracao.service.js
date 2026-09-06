@@ -209,6 +209,9 @@ export async function getMapaGovernador() {
       const r = await getResultadoGovernador(uf);
       return {
         uf,
+        leaderId: r.leader?.id || null,
+        leaderName: r.leader?.name || null,
+        leaderPercent: r.leader?.percent ?? null,
         leaderSpectrum: r.leader?.spectrum || 'Centro',
         color: r.leader?.color || SPECTRUM_COLORS.Centro,
       };
@@ -318,6 +321,7 @@ export async function getMapaPresidente() {
         uf,
         leaderId: resultado.leader?.id || null,
         leaderName: resultado.leader?.name || null,
+        leaderPercent: resultado.leader?.percent ?? null,
         color: resultado.leader?.color || SPECTRUM_COLORS.Centro,
       };
     })
