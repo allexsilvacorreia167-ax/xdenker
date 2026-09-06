@@ -8,6 +8,7 @@ const navItems = [
   { path: '/', label: 'Início' },
   { path: '/pesquisas', label: 'Pesquisas' },
   { path: '/sistema-politico', label: 'Sistema Político' },
+  { path: '/judiciario', label: 'Judiciário' },
   { path: '/metodologia', label: 'Metodologia' },
   { path: '/blog', label: 'Blog' },
   { path: '/contato', label: 'Contato' },
@@ -51,8 +52,8 @@ export default function Header({ onOpenMobileMenu, forceMobile = false, forceDes
                   key={item.path}
                   to={item.path}
                   className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === item.path
-                      ? 'bg-blue-50 text-blue-700'
-                      : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
+                    ? 'bg-blue-50 text-blue-700'
+                    : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
                     }`}
                 >
                   {item.label}

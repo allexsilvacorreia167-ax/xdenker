@@ -18,12 +18,21 @@ import AdminBlog from './pages/admin/AdminBlog';
 import { AuthProvider } from './hooks/useAuth';
 import { AdminAuthProvider } from './hooks/useAdminAuth';
 
-// Novas páginas do Sistema Político
+// Sistema Político
 import SistemaPoliticoGeral from './pages/sistema-politico/SistemaPoliticoGeral';
 import ExecutivoFederal from './pages/sistema-politico/ExecutivoFederal';
 import Senado from './pages/sistema-politico/Senado';
 import Camara from './pages/sistema-politico/Camara';
 import AssembleiasEstaduais from './pages/sistema-politico/AssembleiasEstaduais';
+
+// Judiciário
+import JudiciarioGeral from './pages/judiciario/JudiciarioGeral';
+import STF from './pages/judiciario/STF';
+import STJ from './pages/judiciario/STJ';
+import TSE from './pages/judiciario/TSE';
+import TST from './pages/judiciario/TST';
+import STM from './pages/judiciario/STM';
+import OrgaosControle from './pages/judiciario/OrgaosControle';
 
 function App() {
   return (
@@ -45,6 +54,15 @@ function App() {
             <Route path="/sistema-politico/senado" element={<Senado />} />
             <Route path="/sistema-politico/camara" element={<Camara />} />
             <Route path="/sistema-politico/assembleias" element={<AssembleiasEstaduais />} />
+
+            {/* Judiciário */}
+            <Route path="/judiciario" element={<JudiciarioGeral />} />
+            <Route path="/judiciario/stf" element={<STF />} />
+            <Route path="/judiciario/stj" element={<STJ />} />
+            <Route path="/judiciario/tse" element={<TSE />} />
+            <Route path="/judiciario/tst" element={<TST />} />
+            <Route path="/judiciario/stm" element={<STM />} />
+            <Route path="/judiciario/controle" element={<OrgaosControle />} />
           </Route>
 
           {/* Login do admin fica fora do layout protegido, senão criaria loop de redirecionamento */}

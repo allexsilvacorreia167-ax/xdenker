@@ -1,11 +1,12 @@
 import { Link, useLocation } from 'react-router-dom';
-import { X, Home, BarChart2, Vote, BookOpen, FileText, Phone, Landmark } from 'lucide-react';
+import { X, Home, BarChart2, Vote, BookOpen, FileText, Phone, Landmark, Scale } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 
 const navItems = [
   { path: '/', label: 'Início', icon: Home },
   { path: '/pesquisas', label: 'Pesquisas', icon: BarChart2 },
   { path: '/sistema-politico', label: 'Sistema Político', icon: Landmark },
+  { path: '/judiciario', label: 'Judiciário', icon: Scale },
   { path: '/apuracao', label: 'Apuração', icon: Vote },
   { path: '/metodologia', label: 'Metodologia', icon: BookOpen },
   { path: '/blog', label: 'Blog', icon: FileText },

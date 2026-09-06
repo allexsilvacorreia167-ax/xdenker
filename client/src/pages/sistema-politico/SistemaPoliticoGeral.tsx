@@ -11,22 +11,17 @@ const spectrumColors = {
 
 export default function SistemaPoliticoGeral() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center">
       {/* Header */}
-      <header className="bg-white border-b sticky top-0 z-50">
+      <header className="bg-white border-b sticky top-0 z-50 w-full shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link to="/">
-              <img
-                src="/logo-xdenker.png"
-                alt="XDENKER"
-                className="h-9 w-auto"
-              />
-            </Link>
-            <span className="font-bold text-xl text-gray-800 hidden sm:block">
-              XDENKER
-            </span>
-          </div>
+          <Link to="/">
+            <img
+              src="/logo-xdenker.png"
+              alt="XDENKER"
+              className="h-9 w-auto"
+            />
+          </Link>
 
           <h1 className="text-lg md:text-2xl font-bold text-gray-900 text-center flex-1">
             Sistema Político do Brasil
@@ -34,7 +29,7 @@ export default function SistemaPoliticoGeral() {
 
           <Link
             to="/"
-            className="text-sm text-blue-600 hover:underline font-medium"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
           >
             ← Voltar ao início
           </Link>
@@ -45,41 +40,43 @@ export default function SistemaPoliticoGeral() {
         </p>
 
         {/* Menu de abas */}
-        <nav className="flex overflow-x-auto border-t">
-          <Link
-            to="/sistema-politico"
-            className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-blue-600 text-blue-600"
-          >
-            Visão Geral
-          </Link>
-          <Link
-            to="/sistema-politico/executivo"
-            className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900"
-          >
-            Executivo Federal
-          </Link>
-          <Link
-            to="/sistema-politico/senado"
-            className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900"
-          >
-            Senado
-          </Link>
-          <Link
-            to="/sistema-politico/camara"
-            className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900"
-          >
-            Câmara dos Deputados
-          </Link>
-          <Link
-            to="/sistema-politico/assembleias"
-            className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900"
-          >
-            Assembleias Estaduais
-          </Link>
+        <nav className="border-t">
+          <div className="max-w-7xl mx-auto px-4 flex overflow-x-auto justify-center">
+            <Link
+              to="/sistema-politico"
+              className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-blue-600 text-blue-600"
+            >
+              Visão Geral
+            </Link>
+            <Link
+              to="/sistema-politico/executivo"
+              className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900"
+            >
+              Executivo Federal
+            </Link>
+            <Link
+              to="/sistema-politico/senado"
+              className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900"
+            >
+              Senado
+            </Link>
+            <Link
+              to="/sistema-politico/camara"
+              className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900"
+            >
+              Câmara dos Deputados
+            </Link>
+            <Link
+              to="/sistema-politico/assembleias"
+              className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900"
+            >
+              Assembleias Estaduais
+            </Link>
+          </div>
         </nav>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6 space-y-8">
+      <main className="w-full max-w-7xl mx-auto px-4 py-6 space-y-8 flex-1">
         {/* Barra de Espectro Geral */}
         <section className="grid grid-cols-2 md:grid-cols-5 gap-3">
           {[
@@ -107,7 +104,7 @@ export default function SistemaPoliticoGeral() {
             <h2 className="text-lg font-bold text-gray-800">Executivo Federal</h2>
             <Link
               to="/sistema-politico/executivo"
-              className="text-sm text-blue-600 font-medium hover:underline"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
             >
               Ver completo →
             </Link>
@@ -156,7 +153,7 @@ export default function SistemaPoliticoGeral() {
                   <span className="text-sm text-gray-500">513 cadeiras</span>
                   <Link
                     to="/sistema-politico/camara"
-                    className="text-sm text-blue-600 hover:underline"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
                   >
                     Ver todos →
                   </Link>
@@ -180,7 +177,7 @@ export default function SistemaPoliticoGeral() {
                   <span className="text-sm text-gray-500">81 cadeiras</span>
                   <Link
                     to="/sistema-politico/senado"
-                    className="text-sm text-blue-600 hover:underline"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
                   >
                     Ver todos →
                   </Link>
@@ -271,7 +268,7 @@ export default function SistemaPoliticoGeral() {
             <h2 className="text-lg font-bold text-gray-800">Assembleias Estaduais</h2>
             <Link
               to="/sistema-politico/assembleias"
-              className="text-sm text-blue-600 font-medium hover:underline"
+              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
             >
               Ver todas →
             </Link>

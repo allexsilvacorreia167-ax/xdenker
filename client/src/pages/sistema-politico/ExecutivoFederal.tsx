@@ -26,8 +26,8 @@ const ministros = [
 
 export default function ExecutivoFederal() {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b sticky top-0 z-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center">
+      <header className="bg-white border-b sticky top-0 z-50 w-full shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/">
@@ -41,32 +41,34 @@ export default function ExecutivoFederal() {
 
           <Link
             to="/sistema-politico"
-            className="text-sm text-blue-600 hover:underline font-medium"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
           >
             ← Voltar à Visão Geral
           </Link>
         </div>
 
-        <nav className="flex overflow-x-auto border-t">
-          <Link to="/sistema-politico" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-            Visão Geral
-          </Link>
-          <Link to="/sistema-politico/executivo" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-blue-600 text-blue-600">
-            Executivo Federal
-          </Link>
-          <Link to="/sistema-politico/senado" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-            Senado
-          </Link>
-          <Link to="/sistema-politico/camara" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-            Câmara dos Deputados
-          </Link>
-          <Link to="/sistema-politico/assembleias" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-            Assembleias Estaduais
-          </Link>
+        <nav className="border-t">
+          <div className="max-w-7xl mx-auto px-4 flex overflow-x-auto justify-center">
+            <Link to="/sistema-politico" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
+              Visão Geral
+            </Link>
+            <Link to="/sistema-politico/executivo" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-blue-600 text-blue-600">
+              Executivo Federal
+            </Link>
+            <Link to="/sistema-politico/senado" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
+              Senado
+            </Link>
+            <Link to="/sistema-politico/camara" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
+              Câmara dos Deputados
+            </Link>
+            <Link to="/sistema-politico/assembleias" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
+              Assembleias Estaduais
+            </Link>
+          </div>
         </nav>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6 space-y-8">
+      <main className="w-full max-w-7xl mx-auto px-4 py-6 space-y-8 flex-1">
         {/* Presidente */}
         <section className="bg-white rounded-2xl shadow-sm border p-6">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Presidente da República</h2>

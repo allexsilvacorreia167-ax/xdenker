@@ -20,8 +20,8 @@ export default function AssembleiasEstaduais() {
   const [estadoSelecionado, setEstadoSelecionado] = useState("SP");
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b sticky top-0 z-50">
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center">
+      <header className="bg-white border-b sticky top-0 z-50 w-full shadow-sm">
         <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <Link to="/">
@@ -35,46 +35,47 @@ export default function AssembleiasEstaduais() {
 
           <Link
             to="/sistema-politico"
-            className="text-sm text-blue-600 hover:underline font-medium"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 transition-colors"
           >
             ← Voltar à Visão Geral
           </Link>
         </div>
 
-        <nav className="flex overflow-x-auto border-t">
-          <Link to="/sistema-politico" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-            Visão Geral
-          </Link>
-          <Link to="/sistema-politico/executivo" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-            Executivo Federal
-          </Link>
-          <Link to="/sistema-politico/senado" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-            Senado
-          </Link>
-          <Link to="/sistema-politico/camara" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
-            Câmara dos Deputados
-          </Link>
-          <Link to="/sistema-politico/assembleias" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-blue-600 text-blue-600">
-            Assembleias Estaduais
-          </Link>
+        <nav className="border-t">
+          <div className="max-w-7xl mx-auto px-4 flex overflow-x-auto justify-center">
+            <Link to="/sistema-politico" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
+              Visão Geral
+            </Link>
+            <Link to="/sistema-politico/executivo" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
+              Executivo Federal
+            </Link>
+            <Link to="/sistema-politico/senado" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
+              Senado
+            </Link>
+            <Link to="/sistema-politico/camara" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-transparent text-gray-600 hover:text-gray-900">
+              Câmara dos Deputados
+            </Link>
+            <Link to="/sistema-politico/assembleias" className="px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 border-blue-600 text-blue-600">
+              Assembleias Estaduais
+            </Link>
+          </div>
         </nav>
       </header>
 
-      <main className="max-w-7xl mx-auto px-4 py-6 space-y-8">
+      <main className="w-full max-w-7xl mx-auto px-4 py-6 space-y-8 flex-1">
         {/* Seletor de Estado */}
         <section className="bg-white rounded-2xl shadow-sm border p-5">
           <h2 className="text-lg font-bold text-gray-800 mb-4">Selecione um Estado</h2>
-          
+
           <div className="flex flex-wrap gap-2">
             {estados.map((uf) => (
               <button
                 key={uf}
                 onClick={() => setEstadoSelecionado(uf)}
-                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
-                  estadoSelecionado === uf
-                    ? "bg-blue-600 text-white"
-                    : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                }`}
+                className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${estadoSelecionado === uf
+                  ? "bg-blue-600 text-white"
+                  : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
               >
                 {uf}
               </button>
