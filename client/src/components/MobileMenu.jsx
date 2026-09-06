@@ -5,6 +5,7 @@ import { useAuth } from '../hooks/useAuth';
 const navItems = [
   { path: '/', label: 'Início', icon: Home },
   { path: '/pesquisas', label: 'Pesquisas', icon: BarChart2 },
+  { path: '/sistema-politico', label: 'Sistema Político', icon: Landmark },
   { path: '/apuracao', label: 'Apuração', icon: Vote },
   { path: '/metodologia', label: 'Metodologia', icon: BookOpen },
   { path: '/blog', label: 'Blog', icon: FileText },
