@@ -2,8 +2,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import BrazilMap from '../components/BrazilMap';
-import ListaCandidatos from '../components/apuracao/ListaCandidatos';
-import BarraEspectro from '../components/apuracao/BarraEspectro';
 import MapaEspectroPolitico from '../components/apuracao/MapaEspectroPolitico';
 import PainelExecutivoLateral from '../components/apuracao/PainelExecutivoLateral';
 import DetalhesCandidato from '../components/apuracao/DetalhesCandidato';
@@ -11,8 +9,8 @@ import RankingLegislativo from '../components/apuracao/RankingLegislativo';
 import usePainelApuracao from '../hooks/usePainelApuracao';
 import useApuracaoCargo from '../hooks/useApuracaoCargo';
 import useMapaGovernador from '../hooks/useMapaGovernador';
+import useMapaPresidente from '../hooks/useMapaPresidente';
 import { fetchPreferenciasApuracao } from '../services/apuracao.service';
-import { SPECTRUM_ORDER } from '../data/spectrumColors';
 
 const CARGOS = [
   { id: 'presidente', label: 'Presidente' },
@@ -22,30 +20,33 @@ const CARGOS = [
   { id: 'deputado_estadual', label: 'Dep. Estadual' },
 ];
 
-const CARGOS_COM_UF = ['governador', 'senador', 'deputado_federal', 'deputado_estadual'];
 const CARGOS_LEGISLATIVOS = ['senador', 'deputado_federal', 'deputado_estadual'];
 
 /**
  * Página completa de Apuração em Tempo Real (/apuracao).
  *
- * MOBILE: mantém o comportamento já validado nas etapas anteriores
- * (abas + mapa/barra + lista), sem alterações nesta etapa.
+ * Layout ÚNICO e responsivo — 1 coluna empilhada no mobile, 3 colunas no
+ * desktop (grid-cols-1 md:grid-cols-[260px_1fr_260px]).
  *
- * DESKTOP: layout em 3 colunas —
- * - Esquerda: Presidente + Governador sempre visíveis (resumo fixo),
- *   clicáveis (troca a aba ativa e seleciona candidato p/ painel direito).
- * - Centro: mapa por espectro (Presidente/Governador) OU ranking com busca
- *   (Legislativo) — nunca os dois ao mesmo tempo.
- * - Direita: detalhes oficiais do candidato selecionado.
+ * - Esquerda: Presidente + Governador sempre visíveis, clicáveis.
+ * - Centro: mapa por candidato líder (Presidente) ou por espectro
+ *   (Governador), OU ranking com busca (Legislativo).
+ * - Direita: detalhes do candidato selecionado — no Legislativo, some no
+ *   mobile (o RankingLegislativo já mostra o detalhe inline, ver seu
+ *   próprio arquivo), mas continua aparecendo no desktop.
  *
- * Adiado para uma próxima etapa (fora do escopo desta): drill-down para
- * malha municipal, busca global no topo cruzando todos os cargos, e dados
- * reais de vice/suplentes (hoje mostrados como "não disponível").
+ * O seletor de estado (BrazilMap, ícones por UF) só aparece na aba
+ * Governador — nos cargos legislativos, o estado já vem escolhido de lá,
+ * repetir o seletor seria redundante.
+ *
+ * Adiado para uma próxima etapa: drill-down para malha municipal do
+ * Governador (mapa mostrando só o estado selecionado), tooltip do mapa
+ * com % do candidato selecionado, busca global cruzando todos os cargos,
+ * dados reais de vice/suplentes.
  */
 export default function ApuracaoPage() {
   const navigate = useNavigate();
   const [cargoAtivo, setCargoAtivo] = useState('presidente');
-  const [filtroEspectro, setFiltroEspectro] = useState(null);
   const [preferenciaPesquisa, setPreferenciaPesquisa] = useState(null);
   const [selecao, setSelecao] = useState(null); // { cargo, candidato }
 
@@ -65,24 +66,22 @@ export default function ApuracaoPage() {
       .catch((e) => console.error('[apuracao] falha ao buscar preferências', e));
   }, []);
 
-  // Reseta filtro de espectro e seleção de candidato ao trocar de estado
+  // Reseta a seleção de candidato ao trocar de estado
   useEffect(() => {
-    setFiltroEspectro(null);
     setSelecao(null);
   }, [painel.uf]);
 
-  const precisaDeUF = CARGOS_COM_UF.includes(cargoAtivo);
   const ehLegislativo = CARGOS_LEGISLATIVOS.includes(cargoAtivo);
 
-  // Dado do cargo ativo (usado no conteúdo central/detalhes)
   const { dados, loading, erro } = useApuracaoCargo(cargoAtivo, painel.uf);
 
-  // Presidente e Governador são buscados sempre, independente da aba ativa,
-  // porque o painel esquerdo do desktop os mostra o tempo todo.
+  // Presidente e Governador são buscados sempre (painel esquerdo os mostra
+  // o tempo todo, independente da aba ativa no topo).
   const { dados: dadosPresidente } = useApuracaoCargo('presidente', null);
   const { dados: dadosGovernador } = useApuracaoCargo('governador', painel.uf);
 
   const { dados: mapaGovernador } = useMapaGovernador(cargoAtivo === 'governador');
+  const { dados: mapaPresidente } = useMapaPresidente(cargoAtivo === 'presidente');
 
   const handleSelecionarUF = (uf) => {
     painel.selecionarEstado(uf);
@@ -94,29 +93,25 @@ export default function ApuracaoPage() {
   };
 
   const handleSelecionarNoRanking = (candidato) => {
-    setSelecao({ cargo: cargoAtivo, candidato });
+    setSelecao(candidato ? { cargo: cargoAtivo, candidato } : null);
   };
 
-  // Agregação client-side (só apresentação): nº de estados liderados por
-  // espectro — substitui o mapa no mobile para Governador.
-  const estadosPorEspectro = useMemo(() => {
-    if (!mapaGovernador?.ufs) return null;
-    const contagem = Object.fromEntries(SPECTRUM_ORDER.map((k) => [k, 0]));
-    mapaGovernador.ufs.forEach((item) => {
-      contagem[item.leaderSpectrum] = (contagem[item.leaderSpectrum] || 0) + 1;
-    });
-    return contagem;
-  }, [mapaGovernador]);
+  // Clique no mapa: Governador troca o estado em foco; Presidente só
+  // seleciona o candidato líder daquele estado para o painel de detalhes
+  // (a lista de candidatos de Presidente não depende de UF).
+  const handleClickMapa = (uf) => {
+    if (cargoAtivo === 'governador') {
+      handleSelecionarUF(uf);
+      return;
+    }
+    if (cargoAtivo === 'presidente') {
+      const item = mapaPresidente?.ufs?.find((x) => x.uf === uf);
+      const candidato = dadosPresidente?.candidates?.find((c) => c.id === item?.leaderId);
+      if (candidato) setSelecao({ cargo: 'presidente', candidato });
+    }
+  };
 
-  const listaFiltrada = useMemo(() => {
-    const candidatos = dados?.candidates || dados?.eleitos || [];
-    if (!filtroEspectro) return candidatos;
-    return candidatos.filter((c) => c.spectrum === filtroEspectro);
-  }, [dados, filtroEspectro]);
-
-  const rankingTop7 = useMemo(() => {
-    return (dados?.eleitos || []).slice(0, 7);
-  }, [dados]);
+  const rankingTop7 = useMemo(() => (dados?.eleitos || []).slice(0, 7), [dados]);
 
   return (
     <div className="bg-slate-50 min-h-screen pb-20">
@@ -130,9 +125,17 @@ export default function ApuracaoPage() {
           Voltar
         </button>
 
-        <h1 className="text-base md:text-lg font-bold text-slate-800 mb-4">
+        <h1 className="text-base md:text-lg font-bold text-slate-800 mb-3">
           Apuração em Tempo Real — Eleições 2026
         </h1>
+
+        {/* Turno + urnas apuradas — só para Presidente/Governador, logo abaixo do título */}
+        {!ehLegislativo && (dados?.turno || dados?.urnasApuradas !== undefined) && (
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4">
+            <TurnoInfo turno={dados?.turno} />
+            <UrnasApuradas valor={dados?.urnasApuradas} />
+          </div>
+        )}
 
         {/* Abas de cargo */}
         <div className="flex gap-1.5 md:gap-2 overflow-x-auto pb-1 mb-4 -mx-4 px-4 md:mx-0 md:px-0">
@@ -151,8 +154,8 @@ export default function ApuracaoPage() {
           ))}
         </div>
 
-        {/* ==================== DESKTOP: 3 colunas ==================== */}
-        <div className="hidden md:grid grid-cols-[260px_1fr_260px] gap-4 items-start">
+        {/* Layout único: 1 coluna empilhada no mobile, 3 colunas no desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-[260px_1fr_260px] gap-4 items-start">
           <PainelExecutivoLateral
             presidente={dadosPresidente}
             governador={dadosGovernador}
@@ -171,105 +174,42 @@ export default function ApuracaoPage() {
                 onSelecionarCandidato={handleSelecionarNoRanking}
               />
             ) : (
-              <MapaEspectroPolitico
-                ufsData={mapaGovernador?.ufs}
-                ufSelecionada={painel.uf}
-                onSelecionarUF={handleSelecionarUF}
-              />
-            )}
-
-            {precisaDeUF && (
-              <div className="mt-4">
-                <BrazilMap selectedUF={painel.uf || ''} onSelect={handleSelecionarUF} />
-              </div>
-            )}
-          </div>
-
-          <DetalhesCandidato
-            candidato={selecao?.candidato}
-            cargo={selecao?.cargo}
-            uf={painel.uf}
-          />
-        </div>
-
-        {/* ==================== MOBILE: fluxo já existente ==================== */}
-        <div className="md:hidden">
-          {cargoAtivo === 'presidente' && (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4">
-              <TurnoInfo turno={dados?.turno} />
-              <UrnasApuradas valor={dados?.urnasApuradas} />
-            </div>
-          )}
-
-          {cargoAtivo === 'governador' && (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4">
-              <p className="text-center text-[11px] font-bold uppercase text-slate-500 mb-2">
-                Cenário nacional por espectro (Governador)
-              </p>
-              {estadosPorEspectro ? (
-                <BarraEspectro dados={estadosPorEspectro} />
-              ) : (
-                <p className="text-xs text-slate-400 text-center py-2">Carregando...</p>
-              )}
-            </div>
-          )}
-
-          {precisaDeUF && (
-            <div className="mb-4">
-              <BrazilMap selectedUF={painel.uf || ''} onSelect={handleSelecionarUF} />
-            </div>
-          )}
-
-          {ehLegislativo && (
-            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 mb-4">
-              <p className="text-center text-[11px] font-bold uppercase text-slate-500 mb-2">
-                Eleitos por espectro {painel.uf ? `— ${painel.uf}` : ''}
-              </p>
-              {dados?.porEspectro ? (
-                <BarraEspectro
-                  dados={dados.porEspectro}
-                  onClickSegmento={(chave) =>
-                    setFiltroEspectro((atual) => (atual === chave ? null : chave))
-                  }
-                  filtroAtivo={filtroEspectro}
-                />
-              ) : (
-                <p className="text-xs text-slate-400 text-center py-2">
-                  {painel.uf ? 'Carregando...' : 'Escolha um estado abaixo.'}
-                </p>
-              )}
-            </div>
-          )}
-
-          <div>
-            {loading && !dados ? (
-              <p className="text-center text-sm text-slate-400 py-8">Carregando apuração...</p>
-            ) : erro ? (
-              <p className="text-center text-sm text-red-500 py-8">{erro}</p>
-            ) : precisaDeUF && !painel.uf ? (
-              <p className="text-center text-sm text-slate-400 py-8">
-                Escolha um estado no mapa acima para ver os candidatos.
-              </p>
-            ) : ehLegislativo ? (
-              <RankingLegislativo
-                cargo={cargoAtivo}
-                uf={painel.uf}
-                candidatos={rankingTop7}
-                candidatoSelecionadoId={selecao?.candidato?.id}
-                onSelecionarCandidato={handleSelecionarNoRanking}
-              />
-            ) : (
               <>
-                {cargoAtivo === 'governador' && <TurnoInfo turno={dados?.turno} />}
-                <ListaCandidatos candidatos={listaFiltrada} />
+                <MapaEspectroPolitico
+                  ufsData={cargoAtivo === 'presidente' ? mapaPresidente?.ufs : mapaGovernador?.ufs}
+                  ufSelecionada={cargoAtivo === 'governador' ? painel.uf : null}
+                  onSelecionarUF={handleClickMapa}
+                />
+
+                {/* Seletor de estado — só faz sentido para Governador */}
+                {cargoAtivo === 'governador' && (
+                  <div className="mt-4">
+                    <BrazilMap selectedUF={painel.uf || ''} onSelect={handleSelecionarUF} />
+                  </div>
+                )}
               </>
             )}
+
+            {loading && !dados && (
+              <p className="text-center text-sm text-slate-400 py-4">Carregando apuração...</p>
+            )}
+            {erro && <p className="text-center text-sm text-red-500 py-4">{erro}</p>}
+            {dados?.warning && (
+              <p className="text-center text-xs text-amber-600 mt-3">{dados.warning}</p>
+            )}
+          </div>
+
+          {/* No mobile, Legislativo já mostra o detalhe inline (dentro do
+              RankingLegislativo) — esconder essa coluna evita duplicar.
+              No desktop, continua sempre visível como coluna dedicada. */}
+          <div className={ehLegislativo ? 'hidden md:block' : ''}>
+            <DetalhesCandidato
+              candidato={selecao?.candidato}
+              cargo={selecao?.cargo}
+              uf={painel.uf}
+            />
           </div>
         </div>
-
-        {dados?.warning && (
-          <p className="text-center text-xs text-amber-600 mt-4">{dados.warning}</p>
-        )}
       </div>
     </div>
   );
