@@ -250,6 +250,14 @@ export default function ApuracaoPage() {
               <p className="text-center text-sm text-slate-400 py-8">
                 Escolha um estado no mapa acima para ver os candidatos.
               </p>
+            ) : ehLegislativo ? (
+              <RankingLegislativo
+                cargo={cargoAtivo}
+                uf={painel.uf}
+                candidatos={rankingTop7}
+                candidatoSelecionadoId={selecao?.candidato?.id}
+                onSelecionarCandidato={handleSelecionarNoRanking}
+              />
             ) : (
               <>
                 {cargoAtivo === 'governador' && <TurnoInfo turno={dados?.turno} />}
