@@ -53,91 +53,38 @@ export default function RankingLegislativo({ cargo, uf, candidatos, onSelecionar
           Nenhum candidato encontrado para este recorte.
         </p>
       ) : (
-        <div className="space-y-3">
-          {/* DESTAQUE NO TOPO (Apenas no mobile quando houver um candidato selecionado) */}
-          {(() => {
-            const candidatoSelecionado = filtrados.find((c) => c.id === candidatoSelecionadoId);
-            if (!candidatoSelecionado) return null;
+        <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50 overflow-hidden">
+          {filtrados.map((c, i) => {
+            const ativo = c.id === candidatoSelecionadoId;
             return (
-              <div className="md:hidden bg-white rounded-2xl border-2 border-slate-800 p-4 shadow-sm">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100 mb-3">
-                  <span className="text-[10px] font-bold uppercase tracking-wider bg-slate-800 text-white px-2 py-0.5 rounded-full">
-                    Selecionado
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => onSelecionarCandidato(null)}
-                    className="text-xs text-slate-500 font-bold hover:text-slate-800"
-                  >
-                    ✕ Fechar / Voltar lista
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-3 mb-3">
-                  {candidatoSelecionado.photo ? (
-                    <img src={candidatoSelecionado.photo} alt={candidatoSelecionado.name} className="w-12 h-12 rounded-full object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-12 h-12 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 font-bold text-base flex-shrink-0">
-                      {candidatoSelecionado.name?.charAt(0) || '?'}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-bold text-slate-800 truncate">{candidatoSelecionado.name}</p>
-                    <p className="text-xs text-slate-500">{candidatoSelecionado.party} • {candidatoSelecionado.number || 'N/A'}</p>
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => onSelecionarCandidato(c)}
+                className={`w-full flex items-center gap-3 p-3 text-left transition-colors ${ativo ? 'bg-slate-50' : 'hover:bg-slate-50'
+                  }`}
+              >
+                <span className="text-sm font-bold text-slate-400 w-5 text-center flex-shrink-0">
+                  {i + 1}
+                </span>
+                {c.photo ? (
+                  <img src={c.photo} alt={c.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
+                ) : (
+                  <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 text-sm font-bold flex-shrink-0">
+                    {c.name?.charAt(0) || '?'}
                   </div>
-                  <span className="text-sm font-extrabold text-slate-800">
-                    {candidatoSelecionado.votes ? candidatoSelecionado.votes.toLocaleString('pt-BR') : `${candidatoSelecionado.percent?.toFixed(2)}%`}
-                  </span>
+                )}
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-slate-800 truncate">{c.name}</p>
+                  <p className="text-xs text-slate-500">{c.party}</p>
                 </div>
-
-                <div className="pt-2 border-t border-slate-100 text-xs space-y-1.5 text-slate-600">
-                  <div className="flex justify-between">
-                    <span className="font-medium text-slate-400">Espectro:</span>
-                    <span className="font-semibold text-slate-700">{candidatoSelecionado.spectrum || 'Não definido'}</span>
-                  </div>
-                  <div className="flex flex-col gap-0.5 pt-1">
-                    <span className="font-medium text-slate-400">Suplentes:</span>
-                    <span className="font-semibold text-slate-800">
-                      {candidatoSelecionado.suplentes?.length ? candidatoSelecionado.suplentes.join(', ') : 'Aguardando definição de suplentes'}
-                    </span>
-                  </div>
-                </div>
-              </div>
+                <span className="text-sm font-semibold text-slate-700 flex-shrink-0">
+                  {c.votes ? c.votes.toLocaleString('pt-BR') : `${c.percent?.toFixed(2)}%`}
+                </span>
+                <ChevronRight size={16} className="text-slate-300 flex-shrink-0" />
+              </button>
             );
-          })()}
-
-          {/* LISTA REGULAR LOGO ABAIXO */}
-          <div className="bg-white rounded-2xl border border-slate-100 divide-y divide-slate-50 overflow-hidden">
-            {filtrados
-              .filter((c) => c.id !== candidatoSelecionadoId)
-              .map((c, i) => (
-                <button
-                  key={c.id}
-                  type="button"
-                  onClick={() => onSelecionarCandidato(c)}
-                  className="w-full flex items-center gap-3 p-3 text-left transition-colors hover:bg-slate-50"
-                >
-                  <span className="text-sm font-bold text-slate-400 w-5 text-center flex-shrink-0">
-                    {i + 1}
-                  </span>
-                  {c.photo ? (
-                    <img src={c.photo} alt={c.name} className="w-10 h-10 rounded-full object-cover flex-shrink-0" />
-                  ) : (
-                    <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-400 text-sm font-bold flex-shrink-0">
-                      {c.name?.charAt(0) || '?'}
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm font-semibold text-slate-800 truncate">{c.name}</p>
-                    <p className="text-xs text-slate-500">{c.party}</p>
-                  </div>
-                  <span className="text-sm font-semibold text-slate-700 flex-shrink-0">
-                    {c.votes ? c.votes.toLocaleString('pt-BR') : `${c.percent?.toFixed(2)}%`}
-                  </span>
-                  <ChevronRight size={16} className="text-slate-300 flex-shrink-0" />
-                </button>
-              ))}
-          </div>
+          })}
         </div>
       )}
     </div>
