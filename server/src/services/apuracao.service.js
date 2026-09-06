@@ -290,10 +290,53 @@ export async function getResultadoLegislativo(cargoName, uf) {
   return payload;
 }
 
+// ---------- MAPA DE PRESIDENTE (todas as UFs, colorido pelo candidato líder) ----------
+
+/**
+ * Diferença em relação ao mapa de Governador: aqui a cor representa o
+ * CANDIDATO líder em cada UF (usando a cor que ele já carrega, derivada do
+ * espectro do partido dele) — não uma agregação de espectro. Como o
+ * Presidente é uma disputa nacional única, os candidatos são os mesmos em
+ * todas as UFs; só a votação simulada varia por estado nesta fase mock.
+ */
+export async function getMapaPresidente() {
+  const key = 'mapa:presidente';
+  const cached = cacheGet(key);
+  if (cached) return cached;
+
+  const candidatosBase = await getPresidentCandidates(true);
+  if (!candidatosBase.length) {
+    const vazio = { source: 'mock', updatedAt: new Date().toISOString(), ufs: [] };
+    cacheSet(key, vazio);
+    return vazio;
+  }
+
+  const resultados = await Promise.all(
+    ALL_UFS.map(async (uf) => {
+      const resultado = await buildResultFromCandidates(candidatosBase, 3_000_000);
+      return {
+        uf,
+        leaderId: resultado.leader?.id || null,
+        leaderName: resultado.leader?.name || null,
+        color: resultado.leader?.color || SPECTRUM_COLORS.Centro,
+      };
+    })
+  );
+
+  const payload = {
+    source: 'mock',
+    updatedAt: new Date().toISOString(),
+    ufs: resultados,
+  };
+  cacheSet(key, payload);
+  return payload;
+}
+
 export default {
   SPECTRUM_COLORS,
   getResultadoPresidente,
   getResultadoGovernador,
   getMapaGovernador,
+  getMapaPresidente,
   getResultadoLegislativo,
 };

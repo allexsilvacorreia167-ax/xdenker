@@ -2,6 +2,7 @@ import {
   getResultadoPresidente,
   getResultadoGovernador,
   getMapaGovernador,
+  getMapaPresidente,
   getResultadoLegislativo,
 } from '../services/apuracao.service.js';
 import { getUserSurveyResponse } from '../services/results.store.js';
@@ -32,6 +33,16 @@ export const mapaGovernador = async (req, res) => {
     res.json(data);
   } catch (e) {
     res.status(502).json({ error: 'Falha ao montar mapa de governador', detail: e.message });
+  }
+};
+
+// Todas as 27 UFs, coloridas pelo candidato líder de Presidente em cada uma
+export const mapaPresidente = async (req, res) => {
+  try {
+    const data = await getMapaPresidente();
+    res.json(data);
+  } catch (e) {
+    res.status(502).json({ error: 'Falha ao montar mapa de presidente', detail: e.message });
   }
 };
 

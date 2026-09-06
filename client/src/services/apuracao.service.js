@@ -21,6 +21,11 @@ export async function fetchMapaGovernador() {
   return res.json();
 }
 
+export async function fetchMapaPresidente() {
+  const res = await apiFetch('/api/apuracao/mapa-presidente');
+  return res.json();
+}
+
 // cargo: 'senador' | 'deputado_federal' | 'deputado_estadual'
 export async function fetchResultadoLegislativo(cargo, uf) {
   const params = new URLSearchParams({ uf });
@@ -38,6 +43,7 @@ export default {
   fetchResultadoPresidente,
   fetchResultadoGovernador,
   fetchMapaGovernador,
+  fetchMapaPresidente,
   fetchResultadoLegislativo,
   fetchPreferenciasApuracao,
 };
