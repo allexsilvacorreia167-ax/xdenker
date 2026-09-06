@@ -7,6 +7,7 @@ import { Menu, LogOut } from 'lucide-react';
 const navItems = [
   { path: '/', label: 'Início' },
   { path: '/pesquisas', label: 'Pesquisas' },
+  { path: '/sistema-politico', label: 'Sistema Político' },
   { path: '/metodologia', label: 'Metodologia' },
   { path: '/blog', label: 'Blog' },
   { path: '/contato', label: 'Contato' },
@@ -49,11 +50,10 @@ export default function Header({ onOpenMobileMenu, forceMobile = false, forceDes
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
-                    location.pathname === item.path
+                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${location.pathname === item.path
                       ? 'bg-blue-50 text-blue-700'
                       : 'text-slate-600 hover:text-blue-600 hover:bg-slate-50'
-                  }`}
+                    }`}
                 >
                   {item.label}
                 </Link>
@@ -157,13 +157,13 @@ export default function Header({ onOpenMobileMenu, forceMobile = false, forceDes
 
       {/* Botão hambúrguer flutuante — só no layout mobile */}
       {!forceDesktop && (
-      <button
-        onClick={onOpenMobileMenu}
-        className={`${forceMobile ? 'flex' : 'lg:hidden flex'} fixed bottom-6 right-5 z-50 w-12 h-12 bg-slate-800 text-white rounded-full shadow-lg items-center justify-center active:scale-95 transition-transform`}
-        aria-label="Abrir menu"
-      >
-        <Menu size={22} />
-      </button>
+        <button
+          onClick={onOpenMobileMenu}
+          className={`${forceMobile ? 'flex' : 'lg:hidden flex'} fixed bottom-6 right-5 z-50 w-12 h-12 bg-slate-800 text-white rounded-full shadow-lg items-center justify-center active:scale-95 transition-transform`}
+          aria-label="Abrir menu"
+        >
+          <Menu size={22} />
+        </button>
       )}
 
       {showLoginModal && (

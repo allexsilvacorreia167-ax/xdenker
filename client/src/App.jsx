@@ -18,6 +18,13 @@ import AdminBlog from './pages/admin/AdminBlog';
 import { AuthProvider } from './hooks/useAuth';
 import { AdminAuthProvider } from './hooks/useAdminAuth';
 
+// Novas páginas do Sistema Político
+import SistemaPoliticoGeral from './pages/sistema-politico/SistemaPoliticoGeral';
+import ExecutivoFederal from './pages/sistema-politico/ExecutivoFederal';
+import Senado from './pages/sistema-politico/Senado';
+import Camara from './pages/sistema-politico/Camara';
+import AssembleiasEstaduais from './pages/sistema-politico/AssembleiasEstaduais';
+
 function App() {
   return (
     <AuthProvider>
@@ -31,6 +38,13 @@ function App() {
             <Route path="/metodologia" element={<MetodologiaPage />} />
             <Route path="/questionario" element={<QuestionarioPage />} />
             <Route path="/apuracao" element={<ApuracaoPage />} />
+
+            {/* Sistema Político */}
+            <Route path="/sistema-politico" element={<SistemaPoliticoGeral />} />
+            <Route path="/sistema-politico/executivo" element={<ExecutivoFederal />} />
+            <Route path="/sistema-politico/senado" element={<Senado />} />
+            <Route path="/sistema-politico/camara" element={<Camara />} />
+            <Route path="/sistema-politico/assembleias" element={<AssembleiasEstaduais />} />
           </Route>
 
           {/* Login do admin fica fora do layout protegido, senão criaria loop de redirecionamento */}
