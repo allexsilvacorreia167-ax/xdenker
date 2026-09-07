@@ -1,6 +1,7 @@
 import { Outlet, Link, useLocation, Navigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, HelpCircle, Compass, UserCheck, ExternalLink, FileText, LogOut
+  LayoutDashboard, Users, HelpCircle, Compass, UserCheck, ExternalLink, FileText, LogOut,
+  Landmark, Scale, Building2
 } from 'lucide-react';
 import { useAdminAuth } from '../hooks/useAdminAuth';
 
@@ -9,6 +10,9 @@ const adminNav = [
   { path: '/adm-painel/candidatos', label: 'Candidatos', icon: Users },
   { path: '/adm-painel/perguntas', label: 'Perguntas', icon: HelpCircle },
   { path: '/adm-painel/espectro', label: 'Espectro Político', icon: Compass },
+  { path: '/adm-painel/executivo', label: 'Executivo', icon: Building2 },
+  { path: '/adm-painel/legislativo', label: 'Legislativo', icon: Landmark },
+  { path: '/adm-painel/judiciario', label: 'Judiciário', icon: Scale },
   { path: '/adm-painel/blog', label: 'Blog', icon: FileText },
   { path: '/adm-painel/usuarios', label: 'Usuários', icon: UserCheck },
 ];
