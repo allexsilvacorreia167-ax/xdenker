@@ -15,6 +15,12 @@ import AdminPerguntas from './pages/admin/AdminPerguntas';
 import AdminEspectro from './pages/admin/AdminEspectro';
 import AdminUsuarios from './pages/admin/AdminUsuarios';
 import AdminBlog from './pages/admin/AdminBlog';
+
+// Admin - Sistema Político e Judiciário
+import AdminExecutivo from './pages/admin/AdminExecutivo';
+import AdminLegislativo from './pages/admin/AdminLegislativo';
+import AdminJudiciario from './pages/admin/AdminJudiciario';
+
 import { AuthProvider } from './hooks/useAuth';
 import { AdminAuthProvider } from './hooks/useAdminAuth';
 
@@ -75,6 +81,11 @@ function App() {
             <Route path="espectro" element={<AdminEspectro />} />
             <Route path="blog" element={<AdminBlog />} />
             <Route path="usuarios" element={<AdminUsuarios />} />
+
+            {/* Novos */}
+            <Route path="executivo" element={<AdminExecutivo />} />
+            <Route path="legislativo" element={<AdminLegislativo />} />
+            <Route path="judiciario" element={<AdminJudiciario />} />
           </Route>
         </Routes>
       </AdminAuthProvider>
