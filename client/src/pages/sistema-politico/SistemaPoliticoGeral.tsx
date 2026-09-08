@@ -9,9 +9,9 @@ import {
 const spectrumColors = {
   esquerda: "#C0392B",
   centroEsquerda: "#E67E22",
-  centro: "#F1C40F",
-  centroDireita: "#52BE80",
-  direita: "#1E8449",
+  centro: "#D4AC0D",
+  centroDireita: "#27AE60",
+  direita: "#145A32",
 };
 
 export default function SistemaPoliticoGeral() {
@@ -24,6 +24,46 @@ export default function SistemaPoliticoGeral() {
     deputadosEstaduais: 0,
   });
   const [loading, setLoading] = useState(true);
+
+  const dadosEspectro = [
+    { id: "esquerda", nome: "Esquerda", seats: 124, percent: 21, cor: spectrumColors.esquerda, rotacao: 0 },
+    { id: "centro-esquerda", nome: "Centro-Esquerda", seats: 98, percent: 17, cor: spectrumColors.centroEsquerda, rotacao: 70 },
+    { id: "centro", nome: "Centro", seats: 142, percent: 24, cor: spectrumColors.centro, rotacao: 140 },
+    { id: "centro-direita", nome: "Centro-Direita", seats: 130, percent: 22, cor: spectrumColors.centroDireita, rotacao: 210 },
+    { id: "direita", nome: "Direita", seats: 95, percent: 16, cor: spectrumColors.direita, rotacao: 280 },
+  ];
+
+  // Distribuição exata de bolinhas para a Câmara (Total: 513)
+  const camaraDistribuicao = [
+    { nome: "Esquerda", count: 86, cor: spectrumColors.esquerda },
+    { nome: "Centro-Esquerda", count: 39, cor: spectrumColors.centroEsquerda },
+    { nome: "Centro", count: 135, cor: spectrumColors.centro },
+    { nome: "Centro-Direita", count: 150, cor: spectrumColors.centroDireita },
+    { nome: "Direita", count: 103, cor: spectrumColors.direita },
+  ];
+
+  // Distribuição exata de bolinhas para o Senado (Total: 81)
+  const senadoDistribuicao = [
+    { nome: "Esquerda", count: 11, cor: spectrumColors.esquerda },
+    { nome: "Centro-Esquerda", count: 6, cor: spectrumColors.centroEsquerda },
+    { nome: "Centro", count: 27, cor: spectrumColors.centro },
+    { nome: "Centro-Direita", count: 10, cor: spectrumColors.centroDireita },
+    { nome: "Direita", count: 27, cor: spectrumColors.direita },
+  ];
+
+  // Gerador de array plano de cores baseado na quantidade de assentos
+  const gerarArrayBolinhas = (distribuicao: { count: number; cor: string }[]) => {
+    const lista: string[] = [];
+    distribuicao.forEach((item) => {
+      for (let i = 0; i < item.count; i++) {
+        lista.push(item.cor);
+      }
+    });
+    return lista;
+  };
+
+  const bolinhasCamara = gerarArrayBolinhas(camaraDistribuicao);
+  const bolinhasSenado = gerarArrayBolinhas(senadoDistribuicao);
 
   useEffect(() => {
     async function carregar() {
@@ -92,25 +132,99 @@ export default function SistemaPoliticoGeral() {
         </div>
 
         <div className="space-y-6">
-          {/* Barra de Espectro Geral (placeholder até calcularmos de verdade) */}
-          <section className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            {[
-              { nome: "Esquerda", seats: 124, percent: 21, cor: spectrumColors.esquerda },
-              { nome: "Centro-Esquerda", seats: 98, percent: 17, cor: spectrumColors.centroEsquerda },
-              { nome: "Centro", seats: 142, percent: 24, cor: spectrumColors.centro },
-              { nome: "Centro-Direita", seats: 130, percent: 22, cor: spectrumColors.centroDireita },
-              { nome: "Direita", seats: 95, percent: 16, cor: spectrumColors.direita },
-            ].map((item) => (
-              <div
-                key={item.nome}
-                className="rounded-xl p-4 text-white shadow-sm"
-                style={{ backgroundColor: item.cor }}
-              >
-                <div className="text-xs md:text-sm font-medium opacity-90">{item.nome}</div>
-                <div className="text-xl md:text-2xl font-bold mt-1">{item.seats}</div>
-                <div className="text-xs md:text-sm opacity-90">{item.percent}%</div>
+          {/* Gráfico Estilo Anéis Concêntricos */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
+            <div className="flex justify-between items-center mb-6">
+              <div>
+                <h2 className="text-sm md:text-base font-bold text-slate-800">Espectro Político Geral</h2>
+                <p className="text-xs text-slate-500 mt-0.5">Distribuição de forças e representatividade</p>
               </div>
-            ))}
+              <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-medium">
+                Total: 589 assentos
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+              <div className="lg:col-span-5 flex flex-col items-center justify-center bg-slate-50/50 border border-slate-100 rounded-2xl p-6">
+                <div className="relative w-56 h-56 flex items-center justify-center">
+                  <div className="absolute z-10 text-center bg-white w-20 h-20 rounded-full shadow-inner flex flex-col items-center justify-center border border-slate-100">
+                    <span className="text-[10px] font-bold text-red-600">{dadosEspectro[0].percent}% <span className="text-[8px] text-slate-400 font-normal">Esq</span></span>
+                    <span className="text-[10px] font-bold text-amber-600">{dadosEspectro[1].percent}% <span className="text-[8px] text-slate-400 font-normal">C-E</span></span>
+                    <span className="text-[10px] font-bold text-yellow-600">{dadosEspectro[2].percent}% <span className="text-[8px] text-slate-400 font-normal">Cen</span></span>
+                    <span className="text-[10px] font-bold text-emerald-600">{dadosEspectro[3].percent}% <span className="text-[8px] text-slate-400 font-normal">C-D</span></span>
+                    <span className="text-[10px] font-bold text-green-800">{dadosEspectro[4].percent}% <span className="text-[8px] text-slate-400 font-normal">Dir</span></span>
+                  </div>
+
+                  <svg className="w-full h-full" viewBox="0 0 100 100">
+                    {dadosEspectro.map((item, index) => {
+                      const raio = 47 - (index * 5.8);
+                      const circunferencia = 2 * Math.PI * raio;
+                      const preenchimento = (item.percent / 100) * circunferencia;
+                      const dasharray = `${preenchimento} ${circunferencia}`;
+
+                      return (
+                        <g
+                          key={item.id}
+                          className="transition-all duration-300 cursor-pointer hover:brightness-110"
+                          style={{ transformOrigin: '50px 50px', transform: `rotate(${item.rotacao}deg)` }}
+                        >
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r={raio}
+                            fill="transparent"
+                            stroke={item.cor}
+                            strokeWidth="4"
+                            opacity="0.2"
+                          />
+                          <circle
+                            cx="50"
+                            cy="50"
+                            r={raio}
+                            fill="transparent"
+                            stroke={item.cor}
+                            strokeWidth="4"
+                            strokeDasharray={dasharray}
+                            strokeLinecap="round"
+                            className="transition-all duration-700"
+                          />
+                        </g>
+                      );
+                    })}
+                  </svg>
+                </div>
+                <span className="text-[11px] text-slate-400 mt-4 text-center">Passe o mouse sobre os anéis para destaque</span>
+              </div>
+
+              <div className="lg:col-span-7 space-y-2.5">
+                {dadosEspectro.map((item) => (
+                  <div
+                    key={item.id}
+                    className="space-y-1 bg-slate-50/60 p-2.5 rounded-xl border border-slate-100 transition-all duration-300 hover:shadow-sm hover:border-slate-200 hover:brightness-105"
+                  >
+                    <div className="flex justify-between text-xs font-medium">
+                      <span className="text-slate-700 flex items-center gap-2 font-semibold">
+                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.cor }} />
+                        {item.nome}
+                      </span>
+                      <span className="text-slate-800 font-bold bg-white px-2 py-0.5 rounded border border-slate-100 shadow-2xs text-[11px]">
+                        {item.seats} assentos
+                      </span>
+                    </div>
+
+                    <div className="w-full bg-slate-200/70 h-1.5 rounded-full overflow-hidden">
+                      <div
+                        className="h-full rounded-full transition-all duration-500"
+                        style={{
+                          width: `${(item.seats / 160) * 100}%`,
+                          backgroundColor: item.cor,
+                        }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </section>
 
           {/* Executivo Federal - Resumo */}
@@ -166,76 +280,91 @@ export default function SistemaPoliticoGeral() {
             </div>
           </section>
 
-          {/* Legislativo Federal */}
+          {/* Legislativo Federal - Hemiciclos de Bolinhas */}
           <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
             <h2 className="text-sm md:text-base font-bold text-slate-800 mb-6">Legislativo Federal</h2>
 
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-              {/* Câmara */}
-              <div className="lg:col-span-3">
-                <div className="flex items-center justify-between mb-3">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+
+              {/* Câmara dos Deputados (Hemiciclo de Bolinhas) */}
+              <div className="bg-slate-50/60 border border-slate-200/80 rounded-2xl p-5 flex flex-col items-center justify-between">
+                <div className="w-full flex items-center justify-between mb-4">
                   <h3 className="text-xs md:text-sm font-semibold text-slate-700">Câmara dos Deputados</h3>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs md:text-sm text-slate-500">{totais.deputadosFederais} cadeiras</span>
-                    <Link to="/sistema-politico/camara" className="text-xs md:text-sm text-sky-600 hover:underline font-medium">
-                      Ver todos →
-                    </Link>
-                  </div>
+                  <Link to="/sistema-politico/camara" className="text-xs text-sky-600 hover:underline font-medium">
+                    Ver todos →
+                  </Link>
                 </div>
-                <div className="relative bg-slate-50 border border-slate-200 rounded-xl h-64 flex items-end justify-center pb-6">
-                  <div className="text-center">
-                    <div className="text-3xl md:text-4xl font-bold text-slate-300">{totais.deputadosFederais}</div>
-                    <div className="text-xs text-slate-400 mt-1">Hemiciclo da Câmara</div>
-                    <div className="mt-2 text-[11px] text-slate-500">Dados oficiais do TSE</div>
+
+                <div className="relative w-full h-56 flex items-center justify-center overflow-hidden">
+                  <svg className="w-full h-full max-w-[320px]" viewBox="0 0 200 110">
+                    {bolinhasCamara.map((cor, i) => {
+                      // Distribuição matemática em arcos concêntricos simulando o hemiciclo
+                      const raioBase = 38;
+                      const anel = Math.floor(i / 85); // Divide em linhas/arcos
+                      const raio = raioBase + (anel * 11);
+                      const totalNoArco = Math.min(85, bolinhasCamara.length - (anel * 85));
+                      const angulo = Math.PI - ((i % 85) / (totalNoArco - 1 || 1)) * Math.PI;
+                      const cx = 100 + raio * Math.cos(angulo);
+                      const cy = 95 - raio * Math.sin(angulo);
+
+                      return (
+                        <circle
+                          key={i}
+                          cx={cx}
+                          cy={cy}
+                          r="2.2"
+                          fill={cor}
+                          className="transition-all duration-300 hover:scale-150 cursor-pointer"
+                        />
+                      );
+                    })}
+                  </svg>
+                  <div className="absolute bottom-2 text-center">
+                    <div className="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">{totais.deputadosFederais}</div>
+                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Hemiciclo da Câmara</div>
                   </div>
                 </div>
               </div>
 
-              {/* Senado */}
-              <div className="lg:col-span-2">
-                <div className="flex items-center justify-between mb-3">
+              {/* Senado Federal (Hemiciclo de Bolinhas) */}
+              <div className="bg-slate-50/60 border border-slate-200/80 rounded-2xl p-5 flex flex-col items-center justify-between">
+                <div className="w-full flex items-center justify-between mb-4">
                   <h3 className="text-xs md:text-sm font-semibold text-slate-700">Senado Federal</h3>
-                  <div className="flex items-center gap-3">
-                    <span className="text-xs md:text-sm text-slate-500">{totais.senadores} cadeiras</span>
-                    <Link to="/sistema-politico/senado" className="text-xs md:text-sm text-sky-600 hover:underline font-medium">
-                      Ver todos →
-                    </Link>
-                  </div>
+                  <Link to="/sistema-politico/senado" className="text-xs text-sky-600 hover:underline font-medium">
+                    Ver todos →
+                  </Link>
                 </div>
-                <div className="relative bg-slate-50 border border-slate-200 rounded-xl h-64 flex items-end justify-center pb-6">
-                  <div className="text-center">
-                    <div className="text-3xl md:text-4xl font-bold text-slate-300">{totais.senadores}</div>
-                    <div className="text-xs text-slate-400 mt-1">Hemiciclo do Senado</div>
-                    <div className="mt-2 text-[11px] text-slate-500">Dados oficiais do TSE</div>
-                  </div>
-                </div>
-              </div>
-            </div>
 
-            {/* Legenda */}
-            <div className="mt-6 pt-5 border-t border-slate-100">
-              <div className="flex flex-wrap gap-4 text-xs md:text-sm text-slate-700">
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.esquerda }} />
-                  Esquerda
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.centroEsquerda }} />
-                  Centro-Esquerda
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.centro }} />
-                  Centro
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.centroDireita }} />
-                  Centro-Direita
-                </div>
-                <div className="flex items-center gap-2">
-                  <span className="w-3 h-3 rounded-full" style={{ background: spectrumColors.direita }} />
-                  Direita
+                <div className="relative w-full h-56 flex items-center justify-center overflow-hidden">
+                  <svg className="w-full h-full max-w-[320px]" viewBox="0 0 200 110">
+                    {bolinhasSenado.map((cor, i) => {
+                      const raioBase = 45;
+                      const anel = Math.floor(i / 40);
+                      const raio = raioBase + (anel * 15);
+                      const totalNoArco = Math.min(40, bolinhasSenado.length - (anel * 40));
+                      const angulo = Math.PI - ((i % 40) / (totalNoArco - 1 || 1)) * Math.PI;
+                      const cx = 100 + raio * Math.cos(angulo);
+                      const cy = 95 - raio * Math.sin(angulo);
+
+                      return (
+                        <circle
+                          key={i}
+                          cx={cx}
+                          cy={cy}
+                          r="3"
+                          fill={cor}
+                          className="transition-all duration-300 hover:scale-150 cursor-pointer"
+                        />
+                      );
+                    })}
+                  </svg>
+                  <div className="absolute bottom-2 text-center">
+                    <div className="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">{totais.senadores}</div>
+                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Hemiciclo do Senado</div>
+                  </div>
                 </div>
               </div>
+
             </div>
           </section>
 
