@@ -4,7 +4,10 @@ import { Link } from "react-router-dom";
 import {
   buscarExecutivo,
   contarTitularesPorCargo,
+  buscarDeputadosFederais,
+  buscarSenadores,
 } from "../../services/politicaService";
+import Hemiciclo from "../../components/Hemiciclo";
 
 const spectrumColors = {
   esquerda: "#C0392B",
@@ -14,9 +17,32 @@ const spectrumColors = {
   direita: "#145A32",
 };
 
+const UFS = [
+  "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA",
+  "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO",
+];
+
+function contarEspectro(lista: any[]) {
+  const base = {
+    Esquerda: 0,
+    "Centro-Esquerda": 0,
+    Centro: 0,
+    "Centro-Direita": 0,
+    Direita: 0,
+  };
+  lista.forEach((p) => {
+    const e = p.espectro || "Centro";
+    if (e in base) (base as any)[e]++;
+    else base.Centro++;
+  });
+  return base;
+}
+
 export default function SistemaPoliticoGeral() {
   const [presidente, setPresidente] = useState<any>(null);
   const [ministros, setMinistros] = useState<any[]>([]);
+  const [deputados, setDeputados] = useState<any[]>([]);
+  const [senadores, setSenadores] = useState<any[]>([]);
   const [totais, setTotais] = useState({
     deputadosFederais: 513,
     senadores: 81,
@@ -25,62 +51,29 @@ export default function SistemaPoliticoGeral() {
   });
   const [loading, setLoading] = useState(true);
 
-  const dadosEspectro = [
-    { id: "esquerda", nome: "Esquerda", seats: 124, percent: 21, cor: spectrumColors.esquerda, rotacao: 0 },
-    { id: "centro-esquerda", nome: "Centro-Esquerda", seats: 98, percent: 17, cor: spectrumColors.centroEsquerda, rotacao: 70 },
-    { id: "centro", nome: "Centro", seats: 142, percent: 24, cor: spectrumColors.centro, rotacao: 140 },
-    { id: "centro-direita", nome: "Centro-Direita", seats: 130, percent: 22, cor: spectrumColors.centroDireita, rotacao: 210 },
-    { id: "direita", nome: "Direita", seats: 95, percent: 16, cor: spectrumColors.direita, rotacao: 280 },
-  ];
-
-  // Distribuição exata de bolinhas para a Câmara (Total: 513)
-  const camaraDistribuicao = [
-    { nome: "Esquerda", count: 86, cor: spectrumColors.esquerda },
-    { nome: "Centro-Esquerda", count: 39, cor: spectrumColors.centroEsquerda },
-    { nome: "Centro", count: 135, cor: spectrumColors.centro },
-    { nome: "Centro-Direita", count: 150, cor: spectrumColors.centroDireita },
-    { nome: "Direita", count: 103, cor: spectrumColors.direita },
-  ];
-
-  // Distribuição exata de bolinhas para o Senado (Total: 81)
-  const senadoDistribuicao = [
-    { nome: "Esquerda", count: 11, cor: spectrumColors.esquerda },
-    { nome: "Centro-Esquerda", count: 6, cor: spectrumColors.centroEsquerda },
-    { nome: "Centro", count: 27, cor: spectrumColors.centro },
-    { nome: "Centro-Direita", count: 10, cor: spectrumColors.centroDireita },
-    { nome: "Direita", count: 27, cor: spectrumColors.direita },
-  ];
-
-  // Gerador de array plano de cores baseado na quantidade de assentos
-  const gerarArrayBolinhas = (distribuicao: { count: number; cor: string }[]) => {
-    const lista: string[] = [];
-    distribuicao.forEach((item) => {
-      for (let i = 0; i < item.count; i++) {
-        lista.push(item.cor);
-      }
-    });
-    return lista;
-  };
-
-  const bolinhasCamara = gerarArrayBolinhas(camaraDistribuicao);
-  const bolinhasSenado = gerarArrayBolinhas(senadoDistribuicao);
-
   useEffect(() => {
     async function carregar() {
       try {
-        const [executivo, contagem] = await Promise.all([
-          buscarExecutivo(),
+        const [executivo, contagem, deps, sens] = await Promise.all([
+          buscarExecutivo("federal"),
           contarTitularesPorCargo(),
+          buscarDeputadosFederais(),
+          buscarSenadores(),
         ]);
 
-        const pres = executivo.find((p: any) => p.cargo === "Presidente") || null;
-        const mins = executivo.filter((p: any) => p.cargo === "Ministro").slice(0, 6);
+        const pres =
+          executivo.find((p: any) => p.cargo === "Presidente") || null;
+        const mins = executivo
+          .filter((p: any) => p.cargo === "Ministro")
+          .slice(0, 6);
 
         setPresidente(pres);
         setMinistros(mins);
+        setDeputados(deps || []);
+        setSenadores(sens || []);
         setTotais({
-          deputadosFederais: contagem.deputadosFederais || 513,
-          senadores: contagem.senadores || 81,
+          deputadosFederais: contagem.deputadosFederais || deps?.length || 513,
+          senadores: contagem.senadores || sens?.length || 81,
           governadores: contagem.governadores || 27,
           deputadosEstaduais: contagem.deputadosEstaduais || 0,
         });
@@ -93,10 +86,67 @@ export default function SistemaPoliticoGeral() {
     carregar();
   }, []);
 
+  // Espectro geral = Câmara + Senado (dados reais)
+  const contagemGeral = contarEspectro([...deputados, ...senadores]);
+  const totalAssentos =
+    Object.values(contagemGeral).reduce((a, b) => a + b, 0) || 1;
+
+  const dadosEspectro = [
+    {
+      id: "esquerda",
+      nome: "Esquerda",
+      seats: contagemGeral.Esquerda,
+      percent: Math.round((contagemGeral.Esquerda / totalAssentos) * 100),
+      cor: spectrumColors.esquerda,
+      rotacao: 0,
+    },
+    {
+      id: "centro-esquerda",
+      nome: "Centro-Esquerda",
+      seats: contagemGeral["Centro-Esquerda"],
+      percent: Math.round(
+        (contagemGeral["Centro-Esquerda"] / totalAssentos) * 100
+      ),
+      cor: spectrumColors.centroEsquerda,
+      rotacao: 70,
+    },
+    {
+      id: "centro",
+      nome: "Centro",
+      seats: contagemGeral.Centro,
+      percent: Math.round((contagemGeral.Centro / totalAssentos) * 100),
+      cor: spectrumColors.centro,
+      rotacao: 140,
+    },
+    {
+      id: "centro-direita",
+      nome: "Centro-Direita",
+      seats: contagemGeral["Centro-Direita"],
+      percent: Math.round(
+        (contagemGeral["Centro-Direita"] / totalAssentos) * 100
+      ),
+      cor: spectrumColors.centroDireita,
+      rotacao: 210,
+    },
+    {
+      id: "direita",
+      nome: "Direita",
+      seats: contagemGeral.Direita,
+      percent: Math.round((contagemGeral.Direita / totalAssentos) * 100),
+      cor: spectrumColors.direita,
+      rotacao: 280,
+    },
+  ];
+
+  const maxSeats = Math.max(...dadosEspectro.map((d) => d.seats), 1);
+
   return (
     <div className="bg-slate-50 min-h-screen pb-20">
       <div className="px-4 md:px-8 pt-6 max-w-6xl mx-auto">
-        <Link to="/" className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 mb-4">
+        <Link
+          to="/"
+          className="flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-800 mb-4"
+        >
           ← Voltar ao início
         </Link>
 
@@ -107,14 +157,16 @@ export default function SistemaPoliticoGeral() {
           Entenda quem forma o poder no Brasil
         </p>
 
-        {/* Abas */}
         <div className="flex gap-1.5 md:gap-2 overflow-x-auto pb-1 mb-6 -mx-4 px-4 md:mx-0 md:px-0">
           {[
             { to: "/sistema-politico", label: "Visão Geral", active: true },
             { to: "/sistema-politico/executivo", label: "Executivo" },
             { to: "/sistema-politico/senado", label: "Senado" },
             { to: "/sistema-politico/camara", label: "Câmara dos Deputados" },
-            { to: "/sistema-politico/assembleias", label: "Assembleias Estaduais" },
+            {
+              to: "/sistema-politico/assembleias",
+              label: "Assembleias Estaduais",
+            },
           ].map((tab) => (
             <Link
               key={tab.to}
@@ -132,15 +184,19 @@ export default function SistemaPoliticoGeral() {
         </div>
 
         <div className="space-y-6">
-          {/* Gráfico Estilo Anéis Concêntricos */}
+          {/* Espectro Geral (dados reais Câmara + Senado) */}
           <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
             <div className="flex justify-between items-center mb-6">
               <div>
-                <h2 className="text-sm md:text-base font-bold text-slate-800">Espectro Político Geral</h2>
-                <p className="text-xs text-slate-500 mt-0.5">Distribuição de forças e representatividade</p>
+                <h2 className="text-sm md:text-base font-bold text-slate-800">
+                  Espectro Político Geral
+                </h2>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Câmara + Senado (dados cadastrados)
+                </p>
               </div>
               <span className="text-xs bg-slate-100 text-slate-600 px-2.5 py-1 rounded-full font-medium">
-                Total: 589 assentos
+                Total: {totalAssentos} assentos
               </span>
             </div>
 
@@ -148,25 +204,36 @@ export default function SistemaPoliticoGeral() {
               <div className="lg:col-span-5 flex flex-col items-center justify-center bg-slate-50/50 border border-slate-100 rounded-2xl p-6">
                 <div className="relative w-56 h-56 flex items-center justify-center">
                   <div className="absolute z-10 text-center bg-white w-20 h-20 rounded-full shadow-inner flex flex-col items-center justify-center border border-slate-100">
-                    <span className="text-[10px] font-bold text-red-600">{dadosEspectro[0].percent}% <span className="text-[8px] text-slate-400 font-normal">Esq</span></span>
-                    <span className="text-[10px] font-bold text-amber-600">{dadosEspectro[1].percent}% <span className="text-[8px] text-slate-400 font-normal">C-E</span></span>
-                    <span className="text-[10px] font-bold text-yellow-600">{dadosEspectro[2].percent}% <span className="text-[8px] text-slate-400 font-normal">Cen</span></span>
-                    <span className="text-[10px] font-bold text-emerald-600">{dadosEspectro[3].percent}% <span className="text-[8px] text-slate-400 font-normal">C-D</span></span>
-                    <span className="text-[10px] font-bold text-green-800">{dadosEspectro[4].percent}% <span className="text-[8px] text-slate-400 font-normal">Dir</span></span>
+                    {dadosEspectro.map((item, i) => (
+                      <span
+                        key={item.id}
+                        className="text-[10px] font-bold"
+                        style={{ color: item.cor }}
+                      >
+                        {item.percent}%{" "}
+                        <span className="text-[8px] text-slate-400 font-normal">
+                          {["Esq", "C-E", "Cen", "C-D", "Dir"][i]}
+                        </span>
+                      </span>
+                    ))}
                   </div>
 
                   <svg className="w-full h-full" viewBox="0 0 100 100">
                     {dadosEspectro.map((item, index) => {
-                      const raio = 47 - (index * 5.8);
+                      const raio = 47 - index * 5.8;
                       const circunferencia = 2 * Math.PI * raio;
-                      const preenchimento = (item.percent / 100) * circunferencia;
+                      const preenchimento =
+                        (item.percent / 100) * circunferencia;
                       const dasharray = `${preenchimento} ${circunferencia}`;
 
                       return (
                         <g
                           key={item.id}
-                          className="transition-all duration-300 cursor-pointer hover:brightness-110"
-                          style={{ transformOrigin: '50px 50px', transform: `rotate(${item.rotacao}deg)` }}
+                          className="transition-all duration-300"
+                          style={{
+                            transformOrigin: "50px 50px",
+                            transform: `rotate(${item.rotacao}deg)`,
+                          }}
                         >
                           <circle
                             cx="50"
@@ -186,37 +253,37 @@ export default function SistemaPoliticoGeral() {
                             strokeWidth="4"
                             strokeDasharray={dasharray}
                             strokeLinecap="round"
-                            className="transition-all duration-700"
                           />
                         </g>
                       );
                     })}
                   </svg>
                 </div>
-                <span className="text-[11px] text-slate-400 mt-4 text-center">Passe o mouse sobre os anéis para destaque</span>
               </div>
 
               <div className="lg:col-span-7 space-y-2.5">
                 {dadosEspectro.map((item) => (
                   <div
                     key={item.id}
-                    className="space-y-1 bg-slate-50/60 p-2.5 rounded-xl border border-slate-100 transition-all duration-300 hover:shadow-sm hover:border-slate-200 hover:brightness-105"
+                    className="space-y-1 bg-slate-50/60 p-2.5 rounded-xl border border-slate-100"
                   >
                     <div className="flex justify-between text-xs font-medium">
                       <span className="text-slate-700 flex items-center gap-2 font-semibold">
-                        <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.cor }} />
+                        <span
+                          className="w-2.5 h-2.5 rounded-full"
+                          style={{ backgroundColor: item.cor }}
+                        />
                         {item.nome}
                       </span>
-                      <span className="text-slate-800 font-bold bg-white px-2 py-0.5 rounded border border-slate-100 shadow-2xs text-[11px]">
+                      <span className="text-slate-800 font-bold bg-white px-2 py-0.5 rounded border border-slate-100 text-[11px]">
                         {item.seats} assentos
                       </span>
                     </div>
-
                     <div className="w-full bg-slate-200/70 h-1.5 rounded-full overflow-hidden">
                       <div
-                        className="h-full rounded-full transition-all duration-500"
+                        className="h-full rounded-full"
                         style={{
-                          width: `${(item.seats / 160) * 100}%`,
+                          width: `${(item.seats / maxSeats) * 100}%`,
                           backgroundColor: item.cor,
                         }}
                       />
@@ -227,11 +294,16 @@ export default function SistemaPoliticoGeral() {
             </div>
           </section>
 
-          {/* Executivo Federal - Resumo */}
+          {/* Executivo */}
           <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm md:text-base font-bold text-slate-800">Executivo</h2>
-              <Link to="/sistema-politico/executivo" className="text-xs md:text-sm text-sky-600 hover:underline font-medium">
+              <h2 className="text-sm md:text-base font-bold text-slate-800">
+                Executivo
+              </h2>
+              <Link
+                to="/sistema-politico/executivo"
+                className="text-xs md:text-sm text-sky-600 hover:underline font-medium"
+              >
                 Ver completo →
               </Link>
             </div>
@@ -243,7 +315,9 @@ export default function SistemaPoliticoGeral() {
                     {presidente?.nome ? presidente.nome.charAt(0) : "P"}
                   </div>
                   <div className="font-bold text-sm md:text-base">
-                    {loading ? "Carregando..." : presidente?.nome || "Não cadastrado"}
+                    {loading
+                      ? "Carregando..."
+                      : presidente?.nome || "Não cadastrado"}
                   </div>
                   <div className="text-xs md:text-sm opacity-90">
                     {presidente?.partido || ""} • Presidente
@@ -253,7 +327,9 @@ export default function SistemaPoliticoGeral() {
 
               <div className="flex-1">
                 {loading ? (
-                  <div className="text-xs text-slate-400">Carregando ministros...</div>
+                  <div className="text-xs text-slate-400">
+                    Carregando ministros...
+                  </div>
                 ) : ministros.length > 0 ? (
                   <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {ministros.map((m) => (
@@ -265,128 +341,121 @@ export default function SistemaPoliticoGeral() {
                           {(m.nome || "M").charAt(0)}
                         </div>
                         <div className="min-w-0">
-                          <div className="text-xs md:text-sm font-medium text-slate-800 truncate">{m.nome}</div>
-                          <div className="text-[11px] text-slate-500 truncate">{m.pasta || "Ministro"}</div>
+                          <div className="text-xs md:text-sm font-medium text-slate-800 truncate">
+                            {m.nome}
+                          </div>
+                          <div className="text-[11px] text-slate-500 truncate">
+                            {m.pasta || "Ministro"}
+                          </div>
                         </div>
                       </div>
                     ))}
                   </div>
                 ) : (
                   <div className="text-xs text-slate-400">
-                    Nenhum ministro cadastrado. Cadastre na tabela executivo.
+                    Nenhum ministro cadastrado.
                   </div>
                 )}
               </div>
             </div>
           </section>
 
-          {/* Legislativo Federal - Hemiciclos de Bolinhas */}
+          {/* Legislativo — Hemiciclos reais */}
           <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
-            <h2 className="text-sm md:text-base font-bold text-slate-800 mb-6">Legislativo Federal</h2>
+            <h2 className="text-sm md:text-base font-bold text-slate-800 mb-6">
+              Legislativo Federal
+            </h2>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-              {/* Câmara dos Deputados (Hemiciclo de Bolinhas) */}
-              <div className="bg-slate-50/60 border border-slate-200/80 rounded-2xl p-5 flex flex-col items-center justify-between">
-                <div className="w-full flex items-center justify-between mb-4">
-                  <h3 className="text-xs md:text-sm font-semibold text-slate-700">Câmara dos Deputados</h3>
-                  <Link to="/sistema-politico/camara" className="text-xs text-sky-600 hover:underline font-medium">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              <div className="bg-slate-50/60 border border-slate-200/80 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs md:text-sm font-semibold text-slate-700">
+                    Câmara dos Deputados
+                  </h3>
+                  <Link
+                    to="/sistema-politico/camara"
+                    className="text-xs text-sky-600 hover:underline font-medium"
+                  >
                     Ver todos →
                   </Link>
                 </div>
-
-                <div className="relative w-full h-56 flex items-center justify-center overflow-hidden">
-                  <svg className="w-full h-full max-w-[320px]" viewBox="0 0 200 110">
-                    {bolinhasCamara.map((cor, i) => {
-                      // Distribuição matemática em arcos concêntricos simulando o hemiciclo
-                      const raioBase = 38;
-                      const anel = Math.floor(i / 85); // Divide em linhas/arcos
-                      const raio = raioBase + (anel * 11);
-                      const totalNoArco = Math.min(85, bolinhasCamara.length - (anel * 85));
-                      const angulo = Math.PI - ((i % 85) / (totalNoArco - 1 || 1)) * Math.PI;
-                      const cx = 100 + raio * Math.cos(angulo);
-                      const cy = 95 - raio * Math.sin(angulo);
-
-                      return (
-                        <circle
-                          key={i}
-                          cx={cx}
-                          cy={cy}
-                          r="2.2"
-                          fill={cor}
-                          className="transition-all duration-300 hover:scale-150 cursor-pointer"
-                        />
-                      );
-                    })}
-                  </svg>
-                  <div className="absolute bottom-2 text-center">
-                    <div className="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">{totais.deputadosFederais}</div>
-                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Câmara</div>
+                {loading ? (
+                  <div className="h-48 flex items-center justify-center text-slate-400 text-sm">
+                    Carregando...
                   </div>
-                </div>
+                ) : (
+                  <Hemiciclo
+                    politicos={deputados}
+                    label="CÂMARA"
+                    totalLabel={String(totais.deputadosFederais)}
+                    height={200}
+                    maxArcos={10}
+                  />
+                )}
               </div>
 
-              {/* Senado Federal (Hemiciclo de Bolinhas) */}
-              <div className="bg-slate-50/60 border border-slate-200/80 rounded-2xl p-5 flex flex-col items-center justify-between">
-                <div className="w-full flex items-center justify-between mb-4">
-                  <h3 className="text-xs md:text-sm font-semibold text-slate-700">Senado Federal</h3>
-                  <Link to="/sistema-politico/senado" className="text-xs text-sky-600 hover:underline font-medium">
+              <div className="bg-slate-50/60 border border-slate-200/80 rounded-2xl p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-xs md:text-sm font-semibold text-slate-700">
+                    Senado Federal
+                  </h3>
+                  <Link
+                    to="/sistema-politico/senado"
+                    className="text-xs text-sky-600 hover:underline font-medium"
+                  >
                     Ver todos →
                   </Link>
                 </div>
-
-                <div className="relative w-full h-56 flex items-center justify-center overflow-hidden">
-                  <svg className="w-full h-full max-w-[320px]" viewBox="0 0 200 110">
-                    {bolinhasSenado.map((cor, i) => {
-                      const raioBase = 45;
-                      const anel = Math.floor(i / 40);
-                      const raio = raioBase + (anel * 15);
-                      const totalNoArco = Math.min(40, bolinhasSenado.length - (anel * 40));
-                      const angulo = Math.PI - ((i % 40) / (totalNoArco - 1 || 1)) * Math.PI;
-                      const cx = 100 + raio * Math.cos(angulo);
-                      const cy = 95 - raio * Math.sin(angulo);
-
-                      return (
-                        <circle
-                          key={i}
-                          cx={cx}
-                          cy={cy}
-                          r="3"
-                          fill={cor}
-                          className="transition-all duration-300 hover:scale-150 cursor-pointer"
-                        />
-                      );
-                    })}
-                  </svg>
-                  <div className="absolute bottom-2 text-center">
-                    <div className="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">{totais.senadores}</div>
-                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Senado</div>
+                {loading ? (
+                  <div className="h-48 flex items-center justify-center text-slate-400 text-sm">
+                    Carregando...
                   </div>
-                </div>
+                ) : (
+                  <Hemiciclo
+                    politicos={senadores}
+                    label="SENADO"
+                    totalLabel={String(totais.senadores)}
+                    height={200}
+                    maxArcos={6}
+                  />
+                )}
               </div>
-
             </div>
           </section>
 
-          {/* Assembleias */}
+          {/* Assembleias — atalhos por UF */}
           <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm md:text-base font-bold text-slate-800">Assembleias Estaduais</h2>
-              <Link to="/sistema-politico/assembleias" className="text-xs md:text-sm text-sky-600 hover:underline font-medium">
+              <h2 className="text-sm md:text-base font-bold text-slate-800">
+                Assembleias Estaduais
+              </h2>
+              <Link
+                to="/sistema-politico/assembleias"
+                className="text-xs md:text-sm text-sky-600 hover:underline font-medium"
+              >
                 Ver todas →
               </Link>
             </div>
-            <div className="bg-slate-50 border border-slate-200 rounded-xl h-40 flex items-center justify-center">
-              <div className="text-center text-slate-400">
-                <div className="text-sm">Mapa do Brasil</div>
-                <div className="text-xs mt-1">Clique em um estado</div>
-              </div>
+            <div className="flex flex-wrap gap-1.5">
+              {UFS.map((uf) => (
+                <Link
+                  key={uf}
+                  to={`/sistema-politico/assembleias`}
+                  className="w-10 h-9 rounded-lg text-xs font-bold bg-slate-50 text-slate-600 border border-slate-200 hover:bg-slate-800 hover:text-white hover:border-slate-800 flex items-center justify-center transition-colors"
+                >
+                  {uf}
+                </Link>
+              ))}
             </div>
+            <p className="text-[11px] text-slate-400 mt-3">
+              Clique em um estado na página de Assembleias para ver o hemiciclo
+              e a lista de deputados.
+            </p>
           </section>
         </div>
 
         <p className="text-center text-xs md:text-sm text-slate-500 mt-8">
-          Clique em qualquer cadeira para ver os detalhes do político
+          Use as abas acima para explorar cada poder em detalhe
         </p>
       </div>
     </div>
