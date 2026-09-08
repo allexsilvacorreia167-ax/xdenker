@@ -111,7 +111,7 @@ export default function SistemaPoliticoGeral() {
         <div className="flex gap-1.5 md:gap-2 overflow-x-auto pb-1 mb-6 -mx-4 px-4 md:mx-0 md:px-0">
           {[
             { to: "/sistema-politico", label: "Visão Geral", active: true },
-            { to: "/sistema-politico/executivo", label: "Executivo Federal" },
+            { to: "/sistema-politico/executivo", label: "Executivo" },
             { to: "/sistema-politico/senado", label: "Senado" },
             { to: "/sistema-politico/camara", label: "Câmara dos Deputados" },
             { to: "/sistema-politico/assembleias", label: "Assembleias Estaduais" },
@@ -230,7 +230,7 @@ export default function SistemaPoliticoGeral() {
           {/* Executivo Federal - Resumo */}
           <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-sm md:text-base font-bold text-slate-800">Executivo Federal</h2>
+              <h2 className="text-sm md:text-base font-bold text-slate-800">Executivo</h2>
               <Link to="/sistema-politico/executivo" className="text-xs md:text-sm text-sky-600 hover:underline font-medium">
                 Ver completo →
               </Link>

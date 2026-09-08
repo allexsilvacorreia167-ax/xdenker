@@ -163,19 +163,25 @@ export async function buscarLegislativo(cargoFiltro) {
 // ============================================================
 
 /**
- * Busca todos os registros da tabela executivo
+ * Busca registros da tabela executivo
+ * @param {string} esfera - 'federal' | 'estadual' | 'municipal' | null (todos)
+ * @param {string|null} uf - obrigatório para estadual/municipal (ex: 'CE')
  */
-export async function buscarExecutivo() {
+export async function buscarExecutivo(esfera = 'federal', uf = null) {
     try {
-        const lista = await buscarTodos('executivo', { ativo: true });
+        const filtros = { ativo: true };
+        if (esfera) filtros.esfera = esfera;
+        if (uf) filtros.uf = uf;
+
+        const lista = await buscarTodos('executivo', filtros);
 
         return lista
             .sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
             .map((item) => ({
                 id: item.id,
                 nome: item.nome,
-                cargo: item.cargo,           // 'Presidente' | 'Vice-Presidente' | 'Ministro'
-                pasta: item.pasta,           // só para ministros
+                cargo: item.cargo,
+                pasta: item.pasta,
                 partido: item.partido || '',
                 espectro: item.espectro || 'Centro',
                 foto_url: item.foto_url || '',
@@ -183,6 +189,8 @@ export async function buscarExecutivo() {
                 data_inicio: item.data_inicio,
                 data_fim: item.data_fim,
                 ordem: item.ordem || 0,
+                esfera: item.esfera || 'federal',
+                uf: item.uf || null,
             }));
     } catch (err) {
         console.error('Erro em buscarExecutivo:', err);
@@ -191,19 +199,26 @@ export async function buscarExecutivo() {
 }
 
 /**
- * Retorna só o Presidente
+ * Retorna só o Presidente (federal)
  */
 export async function buscarPresidente() {
-    const lista = await buscarExecutivo();
+    const lista = await buscarExecutivo('federal');
     return lista.find((p) => p.cargo === 'Presidente') || null;
 }
 
 /**
- * Retorna só os Ministros
+ * Retorna só os Ministros (federal)
  */
 export async function buscarMinistros() {
-    const lista = await buscarExecutivo();
+    const lista = await buscarExecutivo('federal');
     return lista.filter((p) => p.cargo === 'Ministro');
+}
+
+/**
+ * Governador + secretários de um estado
+ */
+export async function buscarExecutivoEstadual(uf) {
+    return buscarExecutivo('estadual', uf);
 }
 
 // ============================================================
