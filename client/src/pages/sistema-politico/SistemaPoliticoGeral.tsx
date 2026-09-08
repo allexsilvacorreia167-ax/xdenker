@@ -321,7 +321,7 @@ export default function SistemaPoliticoGeral() {
                   </svg>
                   <div className="absolute bottom-2 text-center">
                     <div className="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">{totais.deputadosFederais}</div>
-                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Hemiciclo da Câmara</div>
+                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Câmara</div>
                   </div>
                 </div>
               </div>
@@ -360,7 +360,7 @@ export default function SistemaPoliticoGeral() {
                   </svg>
                   <div className="absolute bottom-2 text-center">
                     <div className="text-2xl md:text-3xl font-extrabold text-slate-800 tracking-tight">{totais.senadores}</div>
-                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Hemiciclo do Senado</div>
+                    <div className="text-[10px] text-slate-400 font-medium uppercase tracking-wider">Senado</div>
                   </div>
                 </div>
               </div>
