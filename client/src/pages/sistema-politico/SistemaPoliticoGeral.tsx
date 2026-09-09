@@ -8,6 +8,7 @@ import {
   buscarSenadores,
 } from "../../services/politicaService";
 import Hemiciclo from "../../components/Hemiciclo";
+import ExecutivoRadial from "../../components/ExecutivoRadial";
 
 const spectrumColors = {
   esquerda: "#C0392B",
@@ -50,6 +51,7 @@ export default function SistemaPoliticoGeral() {
     deputadosEstaduais: 0,
   });
   const [loading, setLoading] = useState(true);
+  const [espectroAberto, setEspectroAberto] = useState(false);
 
   useEffect(() => {
     async function carregar() {
@@ -63,9 +65,7 @@ export default function SistemaPoliticoGeral() {
 
         const pres =
           executivo.find((p: any) => p.cargo === "Presidente") || null;
-        const mins = executivo
-          .filter((p: any) => p.cargo === "Ministro")
-          .slice(0, 6);
+        const mins = executivo.filter((p: any) => p.cargo === "Ministro");
 
         setPresidente(pres);
         setMinistros(mins);
@@ -200,105 +200,121 @@ export default function SistemaPoliticoGeral() {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-              <div className="lg:col-span-5 flex flex-col items-center justify-center bg-slate-50/50 border border-slate-100 rounded-2xl p-6">
-                <div className="relative w-56 h-56 flex items-center justify-center">
-                  <div className="absolute z-10 text-center bg-white w-20 h-20 rounded-full shadow-inner flex flex-col items-center justify-center border border-slate-100">
-                    {dadosEspectro.map((item, i) => (
-                      <span
-                        key={item.id}
-                        className="text-[10px] font-bold"
-                        style={{ color: item.cor }}
-                      >
-                        {item.percent}%{" "}
-                        <span className="text-[8px] text-slate-400 font-normal">
-                          {["Esq", "C-E", "Cen", "C-D", "Dir"][i]}
-                        </span>
+            {/* Só o gráfico circular */}
+            <div className="flex flex-col items-center justify-center bg-slate-50/50 border border-slate-100 rounded-2xl p-6">
+              <div className="relative w-56 h-56 md:w-64 md:h-64 flex items-center justify-center">
+                <div className="absolute z-10 text-center bg-white w-20 h-20 rounded-full shadow-inner flex flex-col items-center justify-center border border-slate-100">
+                  {dadosEspectro.map((item, i) => (
+                    <span
+                      key={item.id}
+                      className="text-[10px] font-bold"
+                      style={{ color: item.cor }}
+                    >
+                      {item.percent}%{" "}
+                      <span className="text-[8px] text-slate-400 font-normal">
+                        {["Esq", "C-E", "Cen", "C-D", "Dir"][i]}
                       </span>
-                    ))}
-                  </div>
-
-                  <svg className="w-full h-full" viewBox="0 0 100 100">
-                    {dadosEspectro.map((item, index) => {
-                      const raio = 47 - index * 5.8;
-                      const circunferencia = 2 * Math.PI * raio;
-                      const preenchimento =
-                        (item.percent / 100) * circunferencia;
-                      const dasharray = `${preenchimento} ${circunferencia}`;
-
-                      return (
-                        <g
-                          key={item.id}
-                          className="transition-all duration-300"
-                          style={{
-                            transformOrigin: "50px 50px",
-                            transform: `rotate(${item.rotacao}deg)`,
-                          }}
-                        >
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r={raio}
-                            fill="transparent"
-                            stroke={item.cor}
-                            strokeWidth="4"
-                            opacity="0.2"
-                          />
-                          <circle
-                            cx="50"
-                            cy="50"
-                            r={raio}
-                            fill="transparent"
-                            stroke={item.cor}
-                            strokeWidth="4"
-                            strokeDasharray={dasharray}
-                            strokeLinecap="round"
-                          />
-                        </g>
-                      );
-                    })}
-                  </svg>
+                    </span>
+                  ))}
                 </div>
-              </div>
 
-              <div className="lg:col-span-7 space-y-2.5">
-                {dadosEspectro.map((item) => (
-                  <div
-                    key={item.id}
-                    className="space-y-1 bg-slate-50/60 p-2.5 rounded-xl border border-slate-100"
-                  >
-                    <div className="flex justify-between text-xs font-medium">
-                      <span className="text-slate-700 flex items-center gap-2 font-semibold">
-                        <span
-                          className="w-2.5 h-2.5 rounded-full"
-                          style={{ backgroundColor: item.cor }}
-                        />
-                        {item.nome}
-                      </span>
-                      <span className="text-slate-800 font-bold bg-white px-2 py-0.5 rounded border border-slate-100 text-[11px]">
-                        {item.seats} assentos
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-200/70 h-1.5 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full"
+                <svg className="w-full h-full" viewBox="0 0 100 100">
+                  {dadosEspectro.map((item, index) => {
+                    const raio = 47 - index * 5.8;
+                    const circunferencia = 2 * Math.PI * raio;
+                    const preenchimento =
+                      (item.percent / 100) * circunferencia;
+                    const dasharray = `${preenchimento} ${circunferencia}`;
+
+                    return (
+                      <g
+                        key={item.id}
+                        className="transition-all duration-300"
                         style={{
-                          width: `${(item.seats / maxSeats) * 100}%`,
-                          backgroundColor: item.cor,
+                          transformOrigin: "50px 50px",
+                          transform: `rotate(${item.rotacao}deg)`,
                         }}
-                      />
-                    </div>
-                  </div>
-                ))}
+                      >
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r={raio}
+                          fill="transparent"
+                          stroke={item.cor}
+                          strokeWidth="4"
+                          opacity="0.2"
+                        />
+                        <circle
+                          cx="50"
+                          cy="50"
+                          r={raio}
+                          fill="transparent"
+                          stroke={item.cor}
+                          strokeWidth="4"
+                          strokeDasharray={dasharray}
+                          strokeLinecap="round"
+                        />
+                      </g>
+                    );
+                  })}
+                </svg>
               </div>
+            </div>
+
+            {/* Sanfona: barras de detalhe */}
+            <div className="mt-4 border border-slate-200 rounded-xl overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setEspectroAberto((v) => !v)}
+                className="w-full flex items-center justify-between px-4 py-3 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
+              >
+                <span className="text-xs md:text-sm font-semibold text-slate-700">
+                  Detalhamento por espectro
+                </span>
+                <span className="text-slate-400 text-sm">
+                  {espectroAberto ? "▲" : "▼"}
+                </span>
+              </button>
+              {espectroAberto && (
+                <div className="p-3 md:p-4 space-y-2.5 border-t border-slate-100">
+                  {dadosEspectro.map((item) => (
+                    <div
+                      key={item.id}
+                      className="space-y-1 bg-slate-50/60 p-2.5 rounded-xl border border-slate-100"
+                    >
+                      <div className="flex justify-between text-xs font-medium">
+                        <span className="text-slate-700 flex items-center gap-2 font-semibold">
+                          <span
+                            className="w-2.5 h-2.5 rounded-full"
+                            style={{ backgroundColor: item.cor }}
+                          />
+                          {item.nome}
+                        </span>
+                        <span className="text-slate-800 font-bold bg-white px-2 py-0.5 rounded border border-slate-100 text-[11px]">
+                          {item.seats} assentos · {item.percent}%
+                        </span>
+                      </div>
+                      <div className="w-full bg-slate-200/70 h-1.5 rounded-full overflow-hidden">
+                        <div
+                          className="h-full rounded-full"
+                          style={{
+                            width: `${(item.seats / maxSeats) * 100}%`,
+                            backgroundColor: item.cor,
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </section>
 
-          {/* Executivo */}
+          {/* Executivo — diagrama radial */}
           <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
-            <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center justify-between mb-2">
               <h2 className="text-sm md:text-base font-bold text-slate-800">
-                Executivo
+                Executivo Federal
               </h2>
               <Link
                 to="/sistema-politico/executivo"
@@ -307,57 +323,20 @@ export default function SistemaPoliticoGeral() {
                 Ver completo →
               </Link>
             </div>
-
-            <div className="flex flex-col lg:flex-row gap-6">
-              <div className="flex-shrink-0 w-full lg:w-64">
-                <div className="bg-gradient-to-br from-green-700 to-green-900 rounded-xl p-4 text-white text-center">
-                  <div className="w-24 h-24 md:w-28 md:h-28 mx-auto rounded-full bg-slate-300 mb-3 overflow-hidden flex items-center justify-center text-slate-600 font-bold text-xl">
-                    {presidente?.nome ? presidente.nome.charAt(0) : "P"}
-                  </div>
-                  <div className="font-bold text-sm md:text-base">
-                    {loading
-                      ? "Carregando..."
-                      : presidente?.nome || "Não cadastrado"}
-                  </div>
-                  <div className="text-xs md:text-sm opacity-90">
-                    {presidente?.partido || ""} • Presidente
-                  </div>
-                </div>
+            <p className="text-xs text-slate-500 mb-3">
+              Presidente no centro · ministérios ao redor (cor = espectro)
+            </p>
+            {loading ? (
+              <div className="h-64 flex items-center justify-center text-slate-400 text-sm">
+                Carregando executivo...
               </div>
-
-              <div className="flex-1">
-                {loading ? (
-                  <div className="text-xs text-slate-400">
-                    Carregando ministros...
-                  </div>
-                ) : ministros.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
-                    {ministros.map((m) => (
-                      <div
-                        key={m.id}
-                        className="border border-slate-200 rounded-xl p-3 flex items-center gap-3 hover:bg-slate-50 transition-colors"
-                      >
-                        <div className="w-10 h-10 rounded-full bg-slate-200 flex-shrink-0 flex items-center justify-center text-xs font-bold text-slate-600">
-                          {(m.nome || "M").charAt(0)}
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-xs md:text-sm font-medium text-slate-800 truncate">
-                            {m.nome}
-                          </div>
-                          <div className="text-[11px] text-slate-500 truncate">
-                            {m.pasta || "Ministro"}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-xs text-slate-400">
-                    Nenhum ministro cadastrado.
-                  </div>
-                )}
-              </div>
-            </div>
+            ) : (
+              <ExecutivoRadial
+                presidente={presidente}
+                ministros={ministros}
+                height={320}
+              />
+            )}
           </section>
 
           {/* Legislativo — Hemiciclos reais */}
