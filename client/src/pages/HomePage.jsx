@@ -22,6 +22,7 @@ export default function HomePage() {
   const navigate = useNavigate();
   const [hasVoted, setHasVoted] = useState(false);
   const [respondents, setRespondents] = useState(0);
+  const [loading, setLoading] = useState(true); // Estado de carregamento para a animação
   const [selectedUF, setSelectedUF] = useState(
     () => localStorage.getItem('xdenker_uf') || ''
   );
@@ -56,6 +57,7 @@ export default function HomePage() {
 
   useEffect(() => {
     const load = async () => {
+      setLoading(true); // Inicia o carregamento animado
       try {
         const uf = selectedUF || 'CE';
         const res = await apiFetch(`/api/?uf=${uf}&turno=${selectedTurno}`);
@@ -77,6 +79,8 @@ export default function HomePage() {
         }
       } catch (e) {
         console.error(e);
+      } finally {
+        setLoading(false); // Finaliza o carregamento e exibe os dados reais com animação
       }
     };
     load();
@@ -149,22 +153,47 @@ export default function HomePage() {
         <BrazilMap selectedUF={selectedUF} onSelect={handleSelectUF} />
       </div>
 
-      {/* Dados em tempo real */}
+      {/* Dados em tempo real com indicador pulsante e spinner de carregamento */}
       <div className="px-4 md:px-8 mb-3 max-w-5xl mx-auto">
-        <div className="grid grid-cols-3 gap-2 bg-white rounded-2xl border border-slate-100 p-3 shadow-sm">
+        <div className="grid grid-cols-3 gap-2 bg-white rounded-2xl border border-slate-100 p-3 shadow-sm items-center">
+          {/* Coluna Dados: com LED verde pulsando em tempo real */}
           <div className="text-center">
-            <p className="text-[10px] uppercase text-slate-400 font-semibold">Dados</p>
-            <p className="text-xs font-bold text-slate-700 mt-0.5">Tempo real</p>
+            <p className="text-[10px] uppercase text-slate-400 font-semibold mb-1">Dados</p>
+            <div className="flex items-center justify-center gap-1.5 mt-0.5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span className="text-xs font-bold text-slate-700">Tempo real</span>
+            </div>
           </div>
-          <div className="text-center border-x border-slate-100">
-            <p className="text-[10px] uppercase text-slate-400 font-semibold">Respostas</p>
-            <p className="text-sm font-bold text-slate-800 mt-0.5">{respondents}</p>
+
+          {/* Coluna Respostas: Spinner rodando enquanto carrega, depois exibe o número real */}
+          <div className="text-center border-x border-slate-100 px-2">
+            <p className="text-[10px] uppercase text-slate-400 font-semibold mb-1">Respostas</p>
+            {loading ? (
+              <div className="flex justify-center py-1">
+                <div className="w-4 h-4 border-2 border-slate-200 border-t-amber-500 rounded-full animate-spin"></div>
+              </div>
+            ) : (
+              <p className="text-sm font-bold text-slate-800 mt-0.5 animate-in fade-in duration-300">
+                {respondents}
+              </p>
+            )}
           </div>
+
+          {/* Coluna Percentuais/Ativos: Spinner rodando enquanto carrega, depois exibe o status real */}
           <div className="text-center">
-            <p className="text-[10px] uppercase text-slate-400 font-semibold">Percentuais</p>
-            <p className="text-sm font-bold text-slate-800 mt-0.5">
-              {respondents > 0 ? 'Ativos' : '0%'}
-            </p>
+            <p className="text-[10px] uppercase text-slate-400 font-semibold mb-1">Percentuais</p>
+            {loading ? (
+              <div className="flex justify-center py-1">
+                <div className="w-4 h-4 border-2 border-slate-200 border-t-amber-500 rounded-full animate-spin"></div>
+              </div>
+            ) : (
+              <p className="text-sm font-bold text-slate-800 mt-0.5 animate-in fade-in duration-300">
+                {respondents > 0 ? 'Ativos' : '0%'}
+              </p>
+            )}
           </div>
         </div>
       </div>
