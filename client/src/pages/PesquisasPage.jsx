@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { apiFetch } from '../api';
 import { useAuth } from '../hooks/useAuth';
 
@@ -69,8 +69,10 @@ export default function PesquisasPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingStep, setLoadingStep] = useState(0);
-  const [isChangingUF, setIsChangingUF] = useState(false); // Estado exclusivo para a troca de UF
+  const [isChangingUF, setIsChangingUF] = useState(false);
+  const [isOpenDropdown, setIsOpenDropdown] = useState(false);
   const [myCoherence, setMyCoherence] = useState(null);
+  const dropdownRef = useRef(null);
   const userId = user?.userId || user?.id;
 
   const loadingMessages = [
@@ -80,6 +82,16 @@ export default function PesquisasPage() {
     'Calculando percentuais...',
     'Quase pronto...',
   ];
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsOpenDropdown(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   useEffect(() => {
     let interval;
@@ -158,7 +170,7 @@ export default function PesquisasPage() {
   return (
     <div className="bg-slate-50 min-h-screen pb-16">
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3 mb-6 relative z-30">
           <div className="flex items-center gap-3">
             <img src="/logo.png" alt="XDENKER" className="h-9 w-auto object-contain" />
             <div>
@@ -171,34 +183,58 @@ export default function PesquisasPage() {
             </div>
           </div>
 
-          <label className="flex items-center gap-2 text-sm text-slate-600 relative">
+          <div className="flex items-center justify-end sm:justify-start gap-2 text-sm text-slate-600 relative" ref={dropdownRef}>
             <span className="font-medium">Estado</span>
-            <div className="relative flex items-center">
-              <select
-                value={selectedUF}
-                disabled={isChangingUF}
-                onChange={(e) => {
-                  const uf = e.target.value;
-                  setSelectedUF(uf);
-                  localStorage.setItem('xdenker_uf', uf);
-                  load(true); // Dispara a busca com indicador de troca
-                }}
-                className={`border-2 border-amber-400 rounded-lg px-3 py-2 text-sm font-semibold bg-white transition-opacity ${isChangingUF ? 'opacity-70 cursor-wait' : ''
-                  }`}
-              >
-                {UFS_BR.map((uf) => (
-                  <option key={uf} value={uf}>{uf}</option>
-                ))}
-              </select>
-              {/* Spinner miniatura direto dentro do campo de seleção enquanto carrega o estado */}
-              {isChangingUF && (
-                <div className="absolute right-3 w-4 h-4 border-2 border-slate-300 border-t-amber-500 rounded-full animate-spin pointer-events-none"></div>
+
+            {/* Caixa Botão Customizada */}
+            <div
+              onClick={() => !isChangingUF && setIsOpenDropdown(!isOpenDropdown)}
+              className={`relative flex items-center justify-between gap-4 bg-white border-2 border-amber-400 rounded-xl px-4 py-2 shadow-sm cursor-pointer select-none transition-all hover:bg-amber-50/30 w-32 ${isChangingUF ? 'opacity-70 cursor-wait' : ''
+                }`}
+            >
+              <span className="text-sm font-bold text-slate-800">{selectedUF}</span>
+
+              {isChangingUF ? (
+                <div className="w-4 h-4 border-2 border-amber-200 border-t-amber-600 rounded-full animate-spin pointer-events-none"></div>
+              ) : (
+                <span className={`text-xs text-amber-600 font-bold transition-transform duration-200 ${isOpenDropdown ? 'rotate-180' : ''}`}>
+                  ▼
+                </span>
               )}
             </div>
-          </label>
+
+            {/* Menu Dropdown Personalizado Responsivo: No mobile abre alinhado à direita para não cortar, e no desktop alinhado à esquerda */}
+            {isOpenDropdown && (
+              <div className="absolute right-0 sm:left-0 sm:right-auto top-full mt-2 w-36 sm:w-full bg-white border border-slate-200 rounded-2xl shadow-xl overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-150">
+                <div className="max-h-60 overflow-y-auto p-1.5 space-y-0.5 custom-scrollbar">
+                  {UFS_BR.map((uf) => {
+                    const isSelected = uf === selectedUF;
+                    return (
+                      <div
+                        key={uf}
+                        onClick={() => {
+                          setSelectedUF(uf);
+                          localStorage.setItem('xdenker_uf', uf);
+                          setIsOpenDropdown(false);
+                          load(true);
+                        }}
+                        className={`flex items-center justify-between px-3 py-2 rounded-xl text-xs font-semibold cursor-pointer transition-colors ${isSelected
+                          ? 'bg-amber-500 text-white font-bold shadow-sm'
+                          : 'text-slate-700 hover:bg-slate-100'
+                          }`}
+                      >
+                        <span>{uf}</span>
+                        {isSelected && <span className="text-[10px]">✓</span>}
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Efeito de transição sutil nas seções enquanto atualiza os dados do novo estado */}
+        {/* Efeito de transição sutil nas seções enquanto atualiza */}
         <div className={`transition-opacity duration-300 ${isChangingUF ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
           {/* Presidente — nacional */}
           <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
