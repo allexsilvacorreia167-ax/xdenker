@@ -68,8 +68,30 @@ export default function PesquisasPage() {
   );
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [loadingStep, setLoadingStep] = useState(0);
   const [myCoherence, setMyCoherence] = useState(null);
   const userId = user?.userId || user?.id;
+
+  // Frases de carregamento progressivo idênticas à outra página
+  const loadingMessages = [
+    'Conectando ao sistema...',
+    'Acessando banco de dados...',
+    'Filtrando dados por estado...',
+    'Calculando percentuais...',
+    'Quase pronto...',
+  ];
+
+  // Efeito para alternar as mensagens de carregamento gradativamente
+  useEffect(() => {
+    let interval;
+    if (loading) {
+      setLoadingStep(0);
+      interval = setInterval(() => {
+        setLoadingStep((prev) => (prev < loadingMessages.length - 1 ? prev + 1 : prev));
+      }, 700);
+    }
+    return () => clearInterval(interval);
+  }, [loading]);
 
   const load = async () => {
     try {
@@ -103,8 +125,11 @@ export default function PesquisasPage() {
 
   if (loading && !data) {
     return (
-      <div className="flex items-center justify-center min-h-[40vh] text-slate-400">
-        Carregando resultados...
+      <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 text-slate-600">
+        <div className="w-10 h-10 border-4 border-slate-200 border-t-amber-500 rounded-full animate-spin"></div>
+        <p className="text-sm font-semibold tracking-wide animate-pulse">
+          {loadingMessages[loadingStep]}
+        </p>
       </div>
     );
   }
