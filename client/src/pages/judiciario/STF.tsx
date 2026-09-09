@@ -1,17 +1,18 @@
-// src/pages/judiciario/STM.tsx
+// src/pages/judiciario/STF.tsx
 import { Link } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { ChevronRight, ChevronDown } from "lucide-react";
-import { buscarSTM } from "../../services/politicaService";
+import { buscarSTF } from "../../services/politicaService";
 
 const competencias = [
-  "Julgar crimes militares definidos no Código Penal Militar",
-  "Processar militares das Forças Armadas em crimes militares",
-  "Julgar recursos contra decisões das Auditorias Militares",
-  "Garantir a aplicação da legislação penal militar",
+  "Guardar a Constituição Federal",
+  "Julgar ações diretas de inconstitucionalidade (ADI) e ações declaratórias de constitucionalidade (ADC)",
+  "Julgar mandados de segurança contra atos do Presidente da República, das Mesas da Câmara e do Senado",
+  "Julgar o Presidente da República e ministros em crimes comuns",
+  "Decidir conflitos entre a União e os Estados",
 ];
 
-export default function STM() {
+export default function STF() {
   const [competenciasAbertas, setCompetenciasAbertas] = useState(true);
   const [lista, setLista] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,9 +23,10 @@ export default function STM() {
     async function carregar() {
       setLoading(true);
       try {
-        setLista((await buscarSTM()) || []);
+        const dados = await buscarSTF();
+        setLista(dados || []);
       } catch (e) {
-        console.error("Erro ao carregar STM:", e);
+        console.error("Erro ao carregar STF:", e);
         setLista([]);
       } finally {
         setLoading(false);
@@ -44,8 +46,7 @@ export default function STM() {
     return (
       (p.nome || "").toLowerCase().includes(t) ||
       (p.cargo || "").toLowerCase().includes(t) ||
-      (p.patente || "").toLowerCase().includes(t) ||
-      (p.forca || "").toLowerCase().includes(t)
+      (p.turma || "").toLowerCase().includes(t)
     );
   });
 
@@ -56,17 +57,17 @@ export default function STM() {
           ← Voltar ao Judiciário
         </Link>
         <h1 className="text-base md:text-lg font-bold text-slate-800 mb-3">
-          Superior Tribunal Militar — STM
+          Supremo Tribunal Federal — STF
         </h1>
 
         <div className="flex gap-1.5 md:gap-2 overflow-x-auto pb-1 mb-6 -mx-4 px-4 md:mx-0 md:px-0">
           {[
             { to: "/judiciario", label: "Visão Geral" },
-            { to: "/judiciario/stf", label: "STF" },
+            { to: "/judiciario/stf", label: "STF", active: true },
             { to: "/judiciario/stj", label: "STJ" },
             { to: "/judiciario/tse", label: "TSE" },
             { to: "/judiciario/tst", label: "TST" },
-            { to: "/judiciario/stm", label: "STM", active: true },
+            { to: "/judiciario/stm", label: "STM" },
             { to: "/judiciario/controle", label: "Órgãos de Controle" },
           ].map((tab) => (
             <Link key={tab.to} to={tab.to}
@@ -79,13 +80,13 @@ export default function STM() {
         <div className="space-y-6">
           <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
             <button type="button" onClick={() => setCompetenciasAbertas(!competenciasAbertas)} className="w-full flex items-center justify-between text-left">
-              <h2 className="text-sm md:text-base font-bold text-slate-800">O que é o STM?</h2>
+              <h2 className="text-sm md:text-base font-bold text-slate-800">O que é o STF?</h2>
               {competenciasAbertas ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
             </button>
             {competenciasAbertas && (
               <div className="mt-4 pt-4 border-t border-slate-100">
                 <p className="text-xs md:text-sm text-slate-600 mb-4">
-                  O Superior Tribunal Militar é o órgão de cúpula da Justiça Militar da União.
+                  O Supremo Tribunal Federal é o órgão de cúpula do Poder Judiciário e o guardião da Constituição Federal.
                 </p>
                 <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-2">Principais competências</div>
                 <ul className="space-y-1.5">
@@ -101,7 +102,7 @@ export default function STM() {
 
           {presidente && (
             <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 md:p-6">
-              <h2 className="text-sm md:text-base font-bold text-slate-800 mb-3">Presidente do STM</h2>
+              <h2 className="text-sm md:text-base font-bold text-slate-800 mb-3">Presidente do STF</h2>
               <div className="flex items-center gap-3">
                 <div className="w-14 h-14 rounded-full bg-slate-200 flex items-center justify-center text-lg font-bold text-slate-600">
                   {(presidente.nome || "P").charAt(0)}
@@ -110,8 +111,7 @@ export default function STM() {
                   <div className="font-semibold text-slate-800">{presidente.nome}</div>
                   <div className="text-xs text-slate-500">
                     {presidente.cargo}
-                    {presidente.patente ? ` · ${presidente.patente}` : ""}
-                    {presidente.forca ? ` · ${presidente.forca}` : ""}
+                    {presidente.data_inicio ? ` · desde ${presidente.data_inicio}` : ""}
                   </div>
                 </div>
               </div>
@@ -124,14 +124,14 @@ export default function STM() {
                 <h2 className="text-sm md:text-base font-bold text-slate-800">Composição</h2>
                 <span className="text-xs text-slate-500">{lista.length} membros</span>
               </div>
-              <input type="text" placeholder="Buscar nome, cargo, patente..." value={busca} onChange={(e) => setBusca(e.target.value)}
-                className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs md:text-sm bg-slate-50 w-full md:w-64" />
+              <input type="text" placeholder="Buscar ministro, cargo ou turma..." value={busca} onChange={(e) => setBusca(e.target.value)}
+                className="border border-slate-200 rounded-xl px-3 py-1.5 text-xs md:text-sm bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-400 w-full md:w-64" />
             </div>
             {loading ? (
-              <div className="border rounded-xl p-8 text-center text-slate-400 text-sm">Carregando...</div>
+              <div className="border rounded-xl p-8 text-center text-slate-400 text-sm">Carregando composição do STF...</div>
             ) : filtrados.length === 0 ? (
               <div className="border border-dashed rounded-xl p-8 text-center text-slate-400 text-sm">
-                Nenhum registro. Cadastre no Admin → Judiciário (órgão STM).
+                Nenhum registro. Cadastre no Admin → Judiciário (órgão STF).
               </div>
             ) : (
               <div className="space-y-2">
@@ -144,11 +144,7 @@ export default function STM() {
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium text-slate-800 truncate">{p.nome}</div>
-                        <div className="text-xs text-slate-500 truncate">
-                          {p.cargo}
-                          {p.patente ? ` · ${p.patente}` : ""}
-                          {p.forca ? ` · ${p.forca}` : ""}
-                        </div>
+                        <div className="text-xs text-slate-500 truncate">{p.cargo}{p.turma ? ` · ${p.turma}` : ""}</div>
                       </div>
                       {abertoId === p.id ? <ChevronDown size={18} className="text-slate-400" /> : <ChevronRight size={18} className="text-slate-400" />}
                     </button>
@@ -156,12 +152,11 @@ export default function STM() {
                       <div className="px-4 pb-4 border-t bg-slate-50 text-xs md:text-sm text-slate-700 space-y-1.5">
                         {p.indicado_por && <div className="mt-3"><span className="text-slate-400">Indicado por: </span>{p.indicado_por}</div>}
                         {p.data_inicio && <div><span className="text-slate-400">Início: </span>{p.data_inicio}</div>}
-                        {p.data_fim && <div><span className="text-slate-400">Fim: </span>{p.data_fim}</div>}
-                        {p.patente && <div><span className="text-slate-400">Patente: </span>{p.patente}</div>}
-                        {p.forca && <div><span className="text-slate-400">Força: </span>{p.forca}</div>}
+                        {p.data_fim && <div><span className="text-slate-400">Fim previsto: </span>{p.data_fim}</div>}
+                        {p.turma && <div><span className="text-slate-400">Turma: </span>{p.turma}</div>}
                         {p.origem && <div><span className="text-slate-400">Origem: </span>{p.origem}</div>}
-                        {!p.indicado_por && !p.data_inicio && !p.patente && !p.forca && (
-                          <div className="mt-3 text-slate-400">Sem detalhes adicionais.</div>
+                        {!p.indicado_por && !p.data_inicio && !p.turma && !p.origem && (
+                          <div className="mt-3 text-slate-400">Sem detalhes adicionais cadastrados.</div>
                         )}
                       </div>
                     )}
