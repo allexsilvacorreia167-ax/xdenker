@@ -69,10 +69,10 @@ export default function PesquisasPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [loadingStep, setLoadingStep] = useState(0);
+  const [isChangingUF, setIsChangingUF] = useState(false); // Estado exclusivo para a troca de UF
   const [myCoherence, setMyCoherence] = useState(null);
   const userId = user?.userId || user?.id;
 
-  // Frases de carregamento progressivo idênticas à outra página
   const loadingMessages = [
     'Conectando ao sistema...',
     'Acessando banco de dados...',
@@ -81,20 +81,20 @@ export default function PesquisasPage() {
     'Quase pronto...',
   ];
 
-  // Efeito para alternar as mensagens de carregamento gradativamente
   useEffect(() => {
     let interval;
-    if (loading) {
+    if (loading && !data) {
       setLoadingStep(0);
       interval = setInterval(() => {
         setLoadingStep((prev) => (prev < loadingMessages.length - 1 ? prev + 1 : prev));
       }, 700);
     }
     return () => clearInterval(interval);
-  }, [loading]);
+  }, [loading, data]);
 
-  const load = async () => {
+  const load = async (isSwitching = false) => {
     try {
+      if (isSwitching) setIsChangingUF(true);
       const res = await apiFetch(`/api/pesquisas?uf=${selectedUF || 'CE'}`);
       const json = await res.json();
       setData(json);
@@ -113,13 +113,14 @@ export default function PesquisasPage() {
       console.error(e);
     } finally {
       setLoading(false);
+      setIsChangingUF(false);
     }
   };
 
   useEffect(() => {
-    setLoading(true);
-    load();
-    const id = setInterval(load, 10000);
+    if (!data) setLoading(true);
+    load(false);
+    const id = setInterval(() => load(false), 10000);
     return () => clearInterval(id);
   }, [selectedUF, isAuthenticated, userId]);
 
@@ -137,7 +138,6 @@ export default function PesquisasPage() {
   const total = data?.totalParticipants ?? 0;
   const president = data?.intentionLines?.presidente || [];
 
-  // Governador só da UF (API devolve array em governadorUF ou objeto por estado)
   let governor = data?.intentionLines?.governadorUF;
   if (!Array.isArray(governor)) {
     const g = data?.intentionLines?.governador;
@@ -170,94 +170,107 @@ export default function PesquisasPage() {
               </p>
             </div>
           </div>
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+
+          <label className="flex items-center gap-2 text-sm text-slate-600 relative">
             <span className="font-medium">Estado</span>
-            <select
-              value={selectedUF}
-              onChange={(e) => {
-                const uf = e.target.value;
-                setSelectedUF(uf);
-                localStorage.setItem('xdenker_uf', uf);
-              }}
-              className="border-2 border-amber-400 rounded-lg px-3 py-2 text-sm font-semibold bg-white"
-            >
-              {UFS_BR.map((uf) => (
-                <option key={uf} value={uf}>{uf}</option>
-              ))}
-            </select>
+            <div className="relative flex items-center">
+              <select
+                value={selectedUF}
+                disabled={isChangingUF}
+                onChange={(e) => {
+                  const uf = e.target.value;
+                  setSelectedUF(uf);
+                  localStorage.setItem('xdenker_uf', uf);
+                  load(true); // Dispara a busca com indicador de troca
+                }}
+                className={`border-2 border-amber-400 rounded-lg px-3 py-2 text-sm font-semibold bg-white transition-opacity ${isChangingUF ? 'opacity-70 cursor-wait' : ''
+                  }`}
+              >
+                {UFS_BR.map((uf) => (
+                  <option key={uf} value={uf}>{uf}</option>
+                ))}
+              </select>
+              {/* Spinner miniatura direto dentro do campo de seleção enquanto carrega o estado */}
+              {isChangingUF && (
+                <div className="absolute right-3 w-4 h-4 border-2 border-slate-300 border-t-amber-500 rounded-full animate-spin pointer-events-none"></div>
+              )}
+            </div>
           </label>
         </div>
 
-        {/* Presidente — nacional */}
-        <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
-          <h2 className="font-semibold text-slate-800 mb-1">Intenção de Voto — Presidente</h2>
-          <p className="text-xs text-slate-400 mb-4">Pesquisa nacional</p>
-          <HorizontalBars
-            items={president}
-            emptyText="Nenhum candidato a presidente cadastrado no ADM"
-          />
-        </section>
-
-        {/* Governador — UF da home */}
-        <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
-          <h2 className="font-semibold text-slate-800 mb-1">
-            Intenção de Voto — Governador ({selectedUF})
-          </h2>
-          <p className="text-xs text-slate-400 mb-4">Estado escolhido na página inicial</p>
-          <HorizontalBars
-            items={governor}
-            emptyText={`Nenhum governador cadastrado no ADM para ${selectedUF}`}
-          />
-        </section>
-
-        {/* Coerência */}
-        <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
-          <h2 className="font-semibold text-slate-800 mb-2">Índice de Conhecimento Político</h2>
-          <p className="text-3xl font-bold text-slate-800 mb-2">{knowledge}%</p>
-          <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-blue-600 rounded-full transition-all"
-              style={{ width: `${Math.min(100, knowledge)}%` }}
+        {/* Efeito de transição sutil nas seções enquanto atualiza os dados do novo estado */}
+        <div className={`transition-opacity duration-300 ${isChangingUF ? 'opacity-50 pointer-events-none' : 'opacity-100'}`}>
+          {/* Presidente — nacional */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
+            <h2 className="font-semibold text-slate-800 mb-1">Intenção de Voto — Presidente</h2>
+            <p className="text-xs text-slate-400 mb-4">Pesquisa nacional</p>
+            <HorizontalBars
+              items={president}
+              emptyText="Nenhum candidato a presidente cadastrado no adm"
             />
-          </div>
-          <p className="text-xs text-slate-400 mt-2">
-            Média de acertos nas perguntas de competência institucional
-            {total === 0 ? ' (sem pesquisas ainda)' : ''}
-          </p>
+          </section>
 
-          {isAuthenticated && myCoherence && (
-            <div className="mt-4 p-4 rounded-xl bg-emerald-50 border border-emerald-100">
-              <p className="text-xs font-semibold text-emerald-700 uppercase mb-1">
-                Sua coerência política
-              </p>
-              <p className="text-2xl font-bold text-emerald-700">
-                {myCoherence.score ?? myCoherence.coherenceScore ?? 0}%
-              </p>
-              <p className="text-xs text-emerald-600">
-                {myCoherence.label || ''}
-                {myCoherence.stateUF ? ` · ${myCoherence.stateUF}` : ''}
-              </p>
+          {/* Governador — UF da home */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
+            <h2 className="font-semibold text-slate-800 mb-1">
+              Intenção de Voto — Governador ({selectedUF})
+            </h2>
+            <p className="text-xs text-slate-400 mb-4">Estado escolhido na página inicial</p>
+            <HorizontalBars
+              items={governor}
+              emptyText={`Nenhum governador cadastrado no adm para ${selectedUF}`}
+            />
+          </section>
+
+          {/* Coerência */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
+            <h2 className="font-semibold text-slate-800 mb-2">Índice de Conhecimento Político</h2>
+            <p className="text-3xl font-bold text-slate-800 mb-2">{knowledge}%</p>
+            <div className="h-3 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-blue-600 rounded-full transition-all"
+                style={{ width: `${Math.min(100, knowledge)}%` }}
+              />
+            </div>
+            <p className="text-xs text-slate-400 mt-2">
+              Média de acertos nas perguntas de competência institucional
+              {total === 0 ? ' (sem pesquisas ainda)' : ''}
+            </p>
+
+            {isAuthenticated && myCoherence && (
+              <div className="mt-4 p-4 rounded-xl bg-emerald-50 border border-emerald-100">
+                <p className="text-xs font-semibold text-emerald-700 uppercase mb-1">
+                  Sua coerência política
+                </p>
+                <p className="text-2xl font-bold text-emerald-700">
+                  {myCoherence.score ?? myCoherence.coherenceScore ?? 0}%
+                </p>
+                <p className="text-xs text-emerald-600">
+                  {myCoherence.label || ''}
+                  {myCoherence.stateUF ? ` · ${myCoherence.stateUF}` : ''}
+                </p>
+              </div>
+            )}
+          </section>
+
+          {/* Setores — estaduais */}
+          <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
+            <h2 className="font-semibold text-slate-800 mb-1">
+              Avaliação das Áreas Prioritárias ({selectedUF})
+            </h2>
+            <p className="text-xs text-slate-400 mb-4">
+              Sensação por estado · Ruim=25 · Médio=50 · Bom=75 · Excelente=100
+            </p>
+            <HorizontalBars items={sectorItems} emptyText="Sem avaliações ainda" />
+          </section>
+
+          {total === 0 && (
+            <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800">
+              <strong>Ainda não há pesquisas registradas.</strong> Complete o
+              questionário e os percentuais serão calculados automaticamente.
             </div>
           )}
-        </section>
-
-        {/* Setores — estaduais */}
-        <section className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5 mb-5">
-          <h2 className="font-semibold text-slate-800 mb-1">
-            Avaliação das Áreas Prioritárias ({selectedUF})
-          </h2>
-          <p className="text-xs text-slate-400 mb-4">
-            Sensação por estado · Ruim=25 · Médio=50 · Bom=75 · Excelente=100
-          </p>
-          <HorizontalBars items={sectorItems} emptyText="Sem avaliações ainda" />
-        </section>
-
-        {total === 0 && (
-          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-sm text-amber-800">
-            <strong>Ainda não há pesquisas registradas.</strong> Complete o
-            questionário e os percentuais serão calculados automaticamente.
-          </div>
-        )}
+        </div>
       </div>
     </div>
   );
