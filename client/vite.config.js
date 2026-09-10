@@ -7,6 +7,11 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      workbox: {
+        // Exclui o GeoJSON e os PNGs de estados do pré-cache automático (carregam sob demanda)
+        globIgnores: ['**/*.geojson', '**/*-estado.png'],
+        maximumFileSizeToCacheInBytes: 4 * 1024 * 1024,
+      },
       manifest: {
         name: 'XDENKER - Sua Opinião Importa | Eleições 2026',
         short_name: 'XDENKER',
