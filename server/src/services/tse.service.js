@@ -52,7 +52,7 @@ async function httpJson(url) {
   return res.json();
 }
 
-async function getActiveElectionId(year) {
+export async function getActiveElectionId(year) {
   try {
     const data = await httpJson(`${DIVULGA_BASE}/eleicao/listar`);
     const list = Array.isArray(data) ? data : data.eleicoes;
@@ -107,7 +107,6 @@ async function fromDivulga(year, uf, cargoCode) {
     list = raw.data;
   }
 
-  // Mapeamento limpo contendo apenas nome, número, partido e UF
   return {
     source: 'tse-divulgacand',
     year,
@@ -186,5 +185,6 @@ export default {
   listCandidates,
   searchLegislative,
   getCandidateDetail,
+  getActiveElectionId,
   CARGO_CODES,
 };

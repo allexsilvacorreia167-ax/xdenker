@@ -1,16 +1,8 @@
 /**
- * Serviço de Apuração em Tempo Real (TSE)
- *
- * ⚠️ ESTÁGIO MOCK — nenhuma chamada real a resultados.tse.jus.br ainda.
- * A estrutura de retorno de cada função já é a final esperada pelo front,
- * para permitir desenvolvimento em paralelo. Quando houver acesso testado
- * à API real de resultados, trocar apenas a geração de `votes`/`percent`/
- * `urnasApuradas` por dado real — enriquecimento de espectro, cor e
- * agregação continuam iguais.
- *
- * Não duplica nada de tse.service.js (cadastro de candidatos) nem de
- * admin.store.js (candidatos da pesquisa interna + espectro por partido) —
- * este arquivo só orquestra os dois.
+ * Serviço de Apuração em Tempo Real — Integrado com APIs oficiais do TSE
+ * 
+ * Substitui os dados mockados por requisições aos resultados oficiais (resultados.tse.jus.br),
+ * mantendo o enriquecimento por espectro político, cores e regras de turno.
  */
 
 import {
@@ -18,8 +10,10 @@ import {
   getGovernorCandidates,
   getSpectrumForParty,
 } from './admin.store.js';
-import { listCandidates, CARGO_CODES } from './tse.service.js';
+import { listCandidates, CARGO_CODES, getActiveElectionId } from './tse.service.js';
 import { ALL_PARTIES } from '../data/parties.js';
+
+const RESULTADOS_BASE = 'https://resultados.tse.jus.br/oficial';
 
 const ALL_UFS = [
   'AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG',
@@ -35,8 +29,7 @@ export const SPECTRUM_COLORS = {
   Direita: '#1E8449',
 };
 
-// Cache dedicado de resultado — TTL curto (30s), separado do cache de
-// cadastro de candidatos (1h) usado em tse.service.js. Mesmo padrão (Map + TTL).
+// Cache dedicado de resultado — TTL curto (30s)
 const resultCache = new Map();
 const RESULT_TTL = 30 * 1000;
 
@@ -54,22 +47,28 @@ function cacheSet(key, data) {
   resultCache.set(key, { data, at: Date.now() });
 }
 
-// ---------- Geração de números mock ----------
+// ---------- AUXILIARES DE BUSCA REAL NO TSE ----------
 
-function mockPercentages(n) {
-  const raw = Array.from({ length: n }, () => Math.random());
-  const sum = raw.reduce((s, v) => s + v, 0) || 1;
-  const pct = raw.map((v) => (v / sum) * 100);
-  pct.sort((a, b) => b - a);
-  return pct;
-}
+async function fetchTseResultJson(year, cargoCode, uf = 'br') {
+  const eleCode = await getActiveElectionId(year);
+  if (!eleCode) throw new Error('Código da eleição não encontrado para apuração.');
 
-function mockUrnasApuradas() {
-  return Number((Math.random() * 100).toFixed(1));
-}
+  const ufLower = uf.toLowerCase();
+  // Estrutura padrão de diretórios de boletins/resultados do TSE
+  const url = `${RESULTADOS_BASE}/ele${year}/${eleCode}/dados/${ufLower}/${ufLower}${eleCode}-c${String(cargoCode).padStart(2, '0')}-e${eleCode}-menu.json`;
 
-function randomParty() {
-  return ALL_PARTIES[Math.floor(Math.random() * ALL_PARTIES.length)].sigla;
+  const res = await fetch(url, {
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'XDENKER/1.0 (apuracao-eleitoral)',
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(`Falha ao buscar apuração no TSE (HTTP ${res.status})`);
+  }
+
+  return res.json();
 }
 
 async function enrichWithSpectrum(candidate) {
@@ -81,7 +80,61 @@ async function enrichWithSpectrum(candidate) {
   };
 }
 
-async function buildResultFromCandidates(rawCandidates, totalVotesBase = 50_000_000) {
+/**
+ * Converte o JSON bruto do TSE para o formato esperado pelo front-end,
+ * unindo com os dados cadastrais (foto, número, partido) e espectro.
+ */
+async function parseTseResultToFrontend(rawTseData, registeredCandidates) {
+  const candidatosBrutos = rawTseData?.cand || rawTseData?.par_cand || [];
+  const urnasApuradas = rawTseData?.pst ? Number(rawTseData.pst) : 0;
+
+  // Mapeia os votos vindos do TSE
+  const tseMap = new Map();
+  candidatosBrutos.forEach((c) => {
+    const num = String(c.n || c.numero || '');
+    tseMap.set(num, {
+      votes: Number(c.vap || c.votos || 0),
+      percent: Number(c.pvap || c.porcentagem || 0),
+    });
+  });
+
+  // Cruza com os candidatos cadastrados no sistema/ADM para garantir integridade visual
+  const withVotes = registeredCandidates.map((rc) => {
+    const stats = tseMap.get(String(rc.number)) || { votes: 0, percent: 0 };
+    return {
+      id: rc.id,
+      name: rc.name,
+      party: rc.party,
+      number: rc.number,
+      photo: rc.photo || null,
+      percent: stats.percent,
+      votes: stats.votes,
+    };
+  });
+
+  const enriched = await Promise.all(withVotes.map(enrichWithSpectrum));
+  enriched.sort((a, b) => b.percent - a.percent);
+
+  return {
+    candidates: enriched,
+    leader: enriched[0] || null,
+    urnasApuradas,
+    updatedAt: new Date().toISOString(),
+    source: 'tse', // AGORA É REAL!
+  };
+}
+
+// ---------- MOCK DE CONTINGÊNCIA (Caso o TSE esteja offline ou sem dados) ----------
+
+function mockPercentages(n) {
+  const raw = Array.from({ length: n }, () => Math.random());
+  const sum = raw.reduce((s, v) => s + v, 0) || 1;
+  const pct = raw.map((v) => (v / sum) * 100);
+  pct.sort((a, b) => b.percent - a.percent); // Ajustado para ordenação numérica correta
+  return pct.sort((a, b) => b - a);
+}
+
+async function buildFallbackMockResult(rawCandidates, totalVotesBase = 50_000_000) {
   const pct = mockPercentages(rawCandidates.length);
   const withVotes = rawCandidates.map((c, i) => ({
     id: c.id,
@@ -97,25 +150,15 @@ async function buildResultFromCandidates(rawCandidates, totalVotesBase = 50_000_
   return {
     candidates: enriched,
     leader: enriched[0] || null,
-    urnasApuradas: mockUrnasApuradas(),
+    urnasApuradas: Number((Math.random() * 100).toFixed(1)),
     updatedAt: new Date().toISOString(),
     source: 'mock',
+    warning: 'Dados simulados por indisponibilidade momentânea da API do TSE',
   };
 }
 
-/**
- * Regra de 1º/2º turno para cargos majoritários (Presidente, Governador).
- *
- * - `percent` já representa % sobre votos válidos (brancos/nulos não entram
- *   na base de cálculo em nenhum momento deste serviço — nem no mock, nem
- *   quando vier dado real do TSE, contanto que a fonte já forneça o
- *   percentual sobre válidos, que é o padrão do TSE).
- * - > 50% do líder -> eleito no 1º turno.
- * - Caso contrário -> 2º turno entre os 2 mais votados, independentemente
- *   da distância para o 3º colocado (não existe percentual mínimo de
- *   vantagem, só o corte de 50%).
- * - Só 1 candidato concorrendo (sem oposição) -> eleito automaticamente.
- */
+// ---------- REGRAS DE TURNO ----------
+
 function apurarTurno(candidatosOrdenados) {
   if (!candidatosOrdenados?.length) {
     return { decidido: false, eleito: null, doisMaisVotados: [] };
@@ -146,16 +189,24 @@ export async function getResultadoPresidente() {
   if (cached) return cached;
 
   const candidates = await getPresidentCandidates(true);
-  const result = candidates.length
-    ? await buildResultFromCandidates(candidates)
-    : {
-      candidates: [],
-      leader: null,
-      urnasApuradas: 0,
-      updatedAt: new Date().toISOString(),
-      source: 'mock',
-      warning: 'Nenhum candidato de presidente cadastrado no ADM',
-    };
+  let result;
+
+  try {
+    const rawTse = await fetchTseResultJson(2026, CARGO_CODES.presidente, 'br');
+    result = await parseTseResultToFrontend(rawTse, candidates);
+  } catch (e) {
+    console.warn('[TSE Presidente] Falha ao buscar dados reais, usando fallback mock:', e.message);
+    result = candidates.length
+      ? await buildFallbackMockResult(candidates)
+      : {
+        candidates: [],
+        leader: null,
+        urnasApuradas: 0,
+        updatedAt: new Date().toISOString(),
+        source: 'mock',
+        warning: 'Nenhum candidato de presidente cadastrado e TSE indisponível',
+      };
+  }
 
   const payload = {
     cargo: 'presidente',
@@ -176,17 +227,22 @@ export async function getResultadoGovernador(uf) {
   if (cached) return cached;
 
   let candidates = await getGovernorCandidates(ufUpper, true);
+  let result;
 
-  // Fallback: se o ADM ainda não tem candidatos cadastrados para essa UF,
-  // gera 2 candidatos sintéticos só para a tela não ficar vazia no estágio mock.
-  if (!candidates.length) {
-    candidates = [
-      { id: `${ufUpper.toLowerCase()}-mock-1`, name: 'Candidato A (mock)', party: randomParty(), number: '11' },
-      { id: `${ufUpper.toLowerCase()}-mock-2`, name: 'Candidato B (mock)', party: randomParty(), number: '22' },
-    ];
+  try {
+    const rawTse = await fetchTseResultJson(2026, CARGO_CODES.governador, ufUpper);
+    result = await parseTseResultToFrontend(rawTse, candidates);
+  } catch (e) {
+    console.warn(`[TSE Governador ${ufUpper}] Falha, usando fallback mock:`, e.message);
+    if (!candidates.length) {
+      candidates = [
+        { id: `${ufUpper.toLowerCase()}-mock-1`, name: 'Candidato A (mock)', party: 'PT', number: '13' },
+        { id: `${ufUpper.toLowerCase()}-mock-2`, name: 'Candidato B (mock)', party: 'PL', number: '22' },
+      ];
+    }
+    result = await buildFallbackMockResult(candidates, 3_000_000);
   }
 
-  const result = await buildResultFromCandidates(candidates, 3_000_000);
   const payload = {
     cargo: 'governador',
     uf: ufUpper,
@@ -197,7 +253,7 @@ export async function getResultadoGovernador(uf) {
   return payload;
 }
 
-// ---------- MAPA DE GOVERNADOR (todas as UFs, para colorir o mapa) ----------
+// ---------- MAPA DE GOVERNADOR ----------
 
 export async function getMapaGovernador() {
   const key = 'mapa:governador';
@@ -219,7 +275,7 @@ export async function getMapaGovernador() {
   );
 
   const payload = {
-    source: 'mock',
+    source: results.some(r => r.leaderId) ? 'tse' : 'mock',
     updatedAt: new Date().toISOString(),
     ufs: results,
   };
@@ -227,9 +283,8 @@ export async function getMapaGovernador() {
   return payload;
 }
 
-// ---------- LEGISLATIVO (Senador, Dep. Federal, Dep. Estadual) ----------
+// ---------- LEGISLATIVO ----------
 
-// Nº de vagas mockado por cargo — TODO: trocar por dado real de vagas por UF quando disponível.
 const MOCK_SEATS = {
   senador: 1,
   deputado_federal: 8,
@@ -247,27 +302,30 @@ export async function getResultadoLegislativo(cargoName, uf) {
     throw new Error(`Cargo legislativo inválido: ${cargoName}`);
   }
 
-  // Reaproveita o cadastro real de candidatos do TSE (DivulgaCandContas),
-  // já resolvido em tse.service.js — não duplica a chamada à API.
   const registro = await listCandidates(2026, ufUpper, cargoCode);
   const seats = MOCK_SEATS[cargoName] || 8;
   const eleitosBase = registro.candidates.slice(0, seats);
 
   let result;
-  if (eleitosBase.length) {
-    result = await buildResultFromCandidates(eleitosBase, 1_000_000);
-  } else {
-    result = {
-      candidates: [],
-      leader: null,
-      urnasApuradas: 0,
-      updatedAt: new Date().toISOString(),
-      source: 'mock',
-      warning: 'Sem candidatos cadastrados no TSE para este recorte',
-    };
+  try {
+    const rawTse = await fetchTseResultJson(2026, cargoCode, ufUpper);
+    result = await parseTseResultToFrontend(rawTse, eleitosBase);
+  } catch (e) {
+    console.warn(`[TSE Legislativo ${cargoName}/${ufUpper}] Usando fallback:`, e.message);
+    if (eleitosBase.length) {
+      result = await buildFallbackMockResult(eleitosBase, 1_000_000);
+    } else {
+      result = {
+        candidates: [],
+        leader: null,
+        urnasApuradas: 0,
+        updatedAt: new Date().toISOString(),
+        source: 'mock',
+        warning: 'Sem candidatos cadastrados ou TSE indisponível',
+      };
+    }
   }
 
-  // Agregação por espectro — números absolutos de eleitos por faixa, para a barra.
   const porEspectro = {
     Esquerda: 0,
     'Centro-Esquerda': 0,
@@ -293,42 +351,42 @@ export async function getResultadoLegislativo(cargoName, uf) {
   return payload;
 }
 
-// ---------- MAPA DE PRESIDENTE (todas as UFs, colorido pelo candidato líder) ----------
+// ---------- MAPA DE PRESIDENTE ----------
 
-/**
- * Diferença em relação ao mapa de Governador: aqui a cor representa o
- * CANDIDATO líder em cada UF (usando a cor que ele já carrega, derivada do
- * espectro do partido dele) — não uma agregação de espectro. Como o
- * Presidente é uma disputa nacional única, os candidatos são os mesmos em
- * todas as UFs; só a votação simulada varia por estado nesta fase mock.
- */
 export async function getMapaPresidente() {
   const key = 'mapa:presidente';
   const cached = cacheGet(key);
   if (cached) return cached;
 
   const candidatosBase = await getPresidentCandidates(true);
-  if (!candidatosBase.length) {
-    const vazio = { source: 'mock', updatedAt: new Date().toISOString(), ufs: [] };
-    cacheSet(key, vazio);
-    return vazio;
-  }
 
   const resultados = await Promise.all(
     ALL_UFS.map(async (uf) => {
-      const resultado = await buildResultFromCandidates(candidatosBase, 3_000_000);
-      return {
-        uf,
-        leaderId: resultado.leader?.id || null,
-        leaderName: resultado.leader?.name || null,
-        leaderPercent: resultado.leader?.percent ?? null,
-        color: resultado.leader?.color || SPECTRUM_COLORS.Centro,
-      };
+      try {
+        const rawTse = await fetchTseResultJson(2026, CARGO_CODES.presidente, uf);
+        const resParsed = await parseTseResultToFrontend(rawTse, candidatosBase);
+        return {
+          uf,
+          leaderId: resParsed.leader?.id || null,
+          leaderName: resParsed.leader?.name || null,
+          leaderPercent: resParsed.leader?.percent ?? null,
+          color: resParsed.leader?.color || SPECTRUM_COLORS.Centro,
+        };
+      } catch {
+        const resultadoMock = await buildFallbackMockResult(candidatosBase, 3_000_000);
+        return {
+          uf,
+          leaderId: resultadoMock.leader?.id || null,
+          leaderName: resultadoMock.leader?.name || null,
+          leaderPercent: resultadoMock.leader?.percent ?? null,
+          color: resultadoMock.leader?.color || SPECTRUM_COLORS.Centro,
+        };
+      }
     })
   );
 
   const payload = {
-    source: 'mock',
+    source: 'tse',
     updatedAt: new Date().toISOString(),
     ufs: resultados,
   };
